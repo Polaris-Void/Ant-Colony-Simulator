@@ -1,0 +1,2326 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#06080e">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>شبیه‌ساز کلونی مورچه‌ها | Ant Colony Simulator</title>
+<style>
+:root{--bg:#06080e;--panel:rgba(10,14,24,.92);--border:rgba(255,255,255,.09);--primary:#00f2fe;--secondary:#00ff87;--accent:#ffaa00;--danger:#ff2a85;--purple:#b464ff;--text:#e2e8f0;--muted:#94a3b8;--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--ch:76px}
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;font-family:'Tahoma','Segoe UI',system-ui,-apple-system,sans-serif}
+html,body{width:100%;height:100vh;height:100dvh;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--text);position:fixed;inset:0;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+#sim-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:1;touch-action:none;cursor:crosshair}
+#stats-bar{position:fixed;top:calc(10px + var(--st));left:calc(10px + var(--sl));z-index:20;display:flex;gap:9px;align-items:center;background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);padding:8px 12px;border-radius:13px;box-shadow:0 8px 28px rgba(0,0,0,.65);font-size:11px;color:var(--muted);font-weight:600}
+.stat-item{display:flex;align-items:center;gap:4px}
+.stat-icon{font-size:12px}
+.stat-value{font-family:'SF Mono',Menlo,Consolas,monospace;font-weight:800;font-size:12px;color:var(--primary);min-width:16px;text-align:center;letter-spacing:.3px}
+.stat-value.green{color:var(--secondary)}.stat-value.amber{color:var(--accent)}
+#top-actions{position:fixed;top:calc(10px + var(--st));right:calc(74px + var(--sr));z-index:20;display:flex;gap:6px}
+.top-btn{width:40px;height:40px;border-radius:12px;background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--border);color:var(--text);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;-webkit-appearance:none;padding:0;font-weight:bold}
+.top-btn:active{transform:scale(.9)}
+.top-btn.on{border-color:var(--primary);box-shadow:0 0 14px rgba(0,242,254,.35)}
+#main-fab{position:fixed;top:calc(10px + var(--st));right:calc(10px + var(--sr));z-index:50;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--secondary));border:none;color:#06080e;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(0,242,254,.45),0 2px 8px rgba(0,0,0,.5);transition:transform .18s cubic-bezier(.34,1.56,.64,1);-webkit-appearance:none}
+#main-fab:active{transform:scale(.9)}
+#main-fab::before{content:'';position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(from 0deg,var(--primary),var(--secondary),var(--purple),var(--primary));opacity:.4;z-index:-1;filter:blur(9px);animation:fabSpin 8s linear infinite}
+@keyframes fabSpin{to{transform:rotate(360deg)}}
+#main-fab svg{position:absolute;width:22px;height:22px;transition:opacity .28s ease,transform .42s cubic-bezier(.16,1,.3,1);stroke-linecap:round;stroke-linejoin:round}
+#main-fab .i-gear{opacity:1;transform:rotate(0) scale(1)}
+#main-fab .i-close{opacity:0;transform:rotate(-140deg) scale(.5)}
+#main-fab.open .i-gear{opacity:0;transform:rotate(140deg) scale(.5)}
+#main-fab.open .i-close{opacity:1;transform:rotate(0) scale(1)}
+
+/* Bottom Panel - Mobile */
+#bottom-panel{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--panel);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--border);border-radius:24px 24px 0 0;box-shadow:0 -14px 60px rgba(0,0,0,.75);transform:translateY(calc(100% - var(--ch) - var(--sb)));transition:transform .44s cubic-bezier(.16,1,.3,1);will-change:transform}
+#bottom-panel.expanded{transform:translateY(0)}
+#bottom-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--primary),var(--secondary),transparent);opacity:.7}
+#panel-handle{height:20px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+.handle-bar{width:44px;height:4px;background:rgba(255,255,255,.3);border-radius:2px;transition:background .2s,width .2s}
+#panel-handle:active .handle-bar{background:var(--primary);width:60px}
+#panel-mini{height:calc(56px + var(--sb));padding:0 16px var(--sb);display:flex;align-items:center;justify-content:space-between;gap:12px}
+#bottom-panel.expanded #panel-mini{display:none}
+.mini-stats{display:flex;gap:14px;font-family:'SF Mono',Menlo,Consolas,monospace;font-weight:800;font-size:13px}
+.mini-stats>div{display:flex;align-items:center;gap:4px}
+.mini-stats .m-icon{font-size:12px;opacity:.85}
+#mini-ants{color:var(--primary)}#mini-score{color:var(--secondary)}#mini-fps{color:var(--muted);font-size:11px}
+.mini-hint{font-size:11px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
+.mini-hint::after{content:'︿';font-size:14px;animation:hintBob 1.8s ease-in-out infinite;display:inline-block}
+@keyframes hintBob{0%,100%{transform:translateY(0);opacity:.6}50%{transform:translateY(-3px);opacity:1}}
+#panel-full{display:none;max-height:calc(100dvh - 100px - var(--st));overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px calc(var(--sb) + 16px)}
+#bottom-panel.expanded #panel-full{display:block}
+.panel-title{font-size:14px;font-weight:800;background:linear-gradient(90deg,var(--primary),var(--secondary),var(--purple));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:flex;justify-content:space-between;align-items:center;letter-spacing:.3px;margin-bottom:12px}
+.panel-title small{font-size:9px;letter-spacing:1.5px;color:var(--muted);-webkit-text-fill-color:var(--muted);font-weight:600}
+
+/* Desktop Layout */
+@media (min-width: 768px) {
+  #bottom-panel {
+    bottom: auto;
+    top: 70px;
+    right: 20px;
+    left: auto;
+    width: 340px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    transform: none !important;
+    max-height: calc(100vh - 90px);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+  }
+  #panel-handle, #panel-mini { display: none !important; }
+  #panel-full { display: block !important; flex: 1; overflow-y: auto; padding-top: 10px; }
+  #main-fab { display: none; }
+  .panel-title { padding: 0 4px; }
+  /* Close button for desktop */
+  .desktop-close {
+    display: flex !important;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+  .desktop-close:hover { color: #fff; }
+  
+  /* Collapsed state on desktop */
+  #bottom-panel.collapsed-desktop {
+    width: auto;
+    height: 52px;
+    overflow: hidden;
+    padding: 0;
+  }
+  #bottom-panel.collapsed-desktop #panel-full { display: none !important; }
+  #bottom-panel.collapsed-desktop .mini-stats { display: flex; padding: 0 16px; height: 100%; align-items: center; }
+  #bottom-panel.collapsed-desktop .panel-title { display: none; }
+  #bottom-panel.collapsed-desktop #panel-mini { display: flex !important; height: 52px; padding: 0 16px; }
+  
+  #legend { left: auto; right: 20px; bottom: 20px; }
+  #stats-bar { left: 20px; }
+}
+.desktop-close { display: none; }
+
+/* UI Elements */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{padding:8px 12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);color:var(--muted);border-radius:11px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .22s}
+.tab-btn.active{background:linear-gradient(135deg,rgba(0,242,254,.22),rgba(0,255,135,.22));border-color:var(--primary);color:#fff;box-shadow:0 0 14px rgba(0,242,254,.22)}
+.tab-pane{display:none}
+.tab-pane.active{display:block;animation:paneIn .28s ease}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.brush-selector{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:14px}
+.brush-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--muted);padding:11px 2px;border-radius:11px;font-size:11px;font-weight:700;cursor:pointer;transition:all .22s;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px}
+.brush-btn .b-icon{font-size:16px}
+.brush-btn.active{background:linear-gradient(135deg,rgba(0,242,254,.2),rgba(0,255,135,.2));border-color:var(--primary);color:#fff;box-shadow:0 0 16px rgba(0,242,254,.3);transform:translateY(-1px)}
+.brush-btn[data-brush="hazard"].active{background:linear-gradient(135deg,rgba(255,42,133,.22),rgba(255,0,0,.2));border-color:var(--danger);box-shadow:0 0 16px rgba(255,42,133,.35)}
+.control-group{margin-bottom:12px}
+.control-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:7px;font-weight:600}
+.control-label span:last-child{color:var(--text);font-family:'SF Mono',Menlo,Consolas,monospace;font-weight:800;font-size:11px;background:rgba(255,255,255,.07);padding:2px 8px;border-radius:6px;letter-spacing:.4px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:rgba(255,255,255,.11);border-radius:3px;outline:none;touch-action:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,var(--primary) 45%,rgba(0,0,0,.7));box-shadow:0 0 14px var(--primary),0 2px 6px rgba(0,0,0,.5);cursor:pointer;border:2px solid #fff}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff,var(--primary) 45%,rgba(0,0,0,.7));box-shadow:0 0 14px var(--primary);cursor:pointer;border:2px solid #fff}
+.theme-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.theme-card{padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;cursor:pointer;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;text-align:inherit;transition:all .22s;display:flex;flex-direction:column;gap:6px}
+.theme-card .th-dots{display:flex;gap:4px}
+.theme-card .th-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(255,255,255,.15)}
+.theme-card.active{border-color:var(--primary);box-shadow:0 0 18px rgba(0,242,254,.25),inset 0 0 20px rgba(0,242,254,.08)}
+.terrain-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.terrain-card{position:relative;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;cursor:pointer;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;text-align:inherit;transition:all .22s;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.terrain-card .tc-preview{position:relative;height:34px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.08)}
+.terrain-card .tc-preview canvas{width:100%;height:100%;display:block}
+.terrain-card.active{border-color:var(--primary);box-shadow:0 0 18px rgba(0,242,254,.25),inset 0 0 20px rgba(0,242,254,.08)}
+.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.preset-btn{padding:13px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;cursor:pointer;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;text-align:center;transition:all .22s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.preset-btn:active{transform:scale(.96);border-color:var(--primary)}
+.preset-btn .p-icon{font-size:22px}
+.behavior-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.time-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.appear-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.glow-mode-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.chip-btn{padding:11px 4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--muted);border-radius:11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.1}
+.chip-btn .c-icon{font-size:15px}
+.chip-btn.active{background:linear-gradient(135deg,rgba(0,242,254,.22),rgba(0,255,135,.22));border-color:var(--primary);color:#fff;box-shadow:0 0 14px rgba(0,242,254,.22)}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:12px;margin-bottom:8px}
+.toggle-row .tr-label{font-size:12px;font-weight:700}
+.toggle-row .tr-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.switch{width:46px;height:26px;background:rgba(255,255,255,.12);border-radius:13px;position:relative;cursor:pointer;transition:background .24s;flex-shrink:0}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .24s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 4px rgba(0,0,0,.3)}
+.switch.on{background:var(--primary)}
+.switch.on::after{transform:translateX(20px)}
+[dir="ltr"] .switch::after{left:auto;right:3px}
+[dir="ltr"] .switch.on::after{transform:translateX(-20px)}
+.action-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.btn{padding:12px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--text);font-size:12px;font-weight:700;cursor:pointer;transition:all .16s;font-family:inherit;-webkit-appearance:none}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:linear-gradient(135deg,rgba(0,242,254,.22),rgba(0,255,135,.22));border-color:rgba(0,255,135,.55);color:#fff}
+.btn-accent{background:linear-gradient(135deg,rgba(180,100,255,.18),rgba(255,42,133,.18));border-color:rgba(180,100,255,.5);color:#fff}
+.btn-danger{border-color:rgba(255,42,133,.42);color:#ff7eb3}
+.btn-wide{grid-column:span 2}
+#legend{position:fixed;bottom:calc(var(--ch) + var(--sb) + 12px);left:12px;z-index:10;display:flex;flex-direction:column;gap:5px;background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--border);padding:8px 12px;border-radius:11px;font-size:10px;color:var(--muted);pointer-events:none;transition:opacity .3s,transform .3s}
+#legend.hidden{opacity:0;transform:translateY(8px)}
+.legend-item{display:flex;align-items:center;gap:6px;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.toast{position:fixed;bottom:calc(var(--ch) + 100px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);padding:10px 20px;border-radius:12px;font-size:13px;font-weight:600;color:var(--text);z-index:100;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);white-space:nowrap;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Brush size stepper */
+.brush-size-row{display:flex;align-items:center;gap:9px}
+.brush-size-row input[type=range]{flex:1}
+.size-step{width:34px;height:34px;flex-shrink:0;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--text);font-size:18px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .16s;font-family:inherit;-webkit-appearance:none;padding:0;line-height:1}
+.size-step:active{transform:scale(.88);border-color:var(--primary);color:var(--primary)}
+.kbd-hints{display:none;font-size:10px;color:var(--muted);font-weight:600;margin:-4px 0 12px;padding:7px 10px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.12);border-radius:9px;letter-spacing:.2px}
+@media (min-width:768px) and (hover:hover){.kbd-hints{display:block}}
+
+/* Brush cursor preview */
+#brush-cursor{position:fixed;z-index:15;pointer-events:none;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);box-shadow:0 0 14px rgba(0,0,0,.35),inset 0 0 14px rgba(255,255,255,.07);transform:translate(-50%,-50%);transition:width .14s ease,height .14s ease,border-color .2s,box-shadow .2s,opacity .22s;opacity:0;left:-100px;top:-100px}
+#brush-cursor.visible{opacity:1}
+#brush-cursor.mode-food{border-color:var(--secondary);box-shadow:0 0 16px rgba(0,255,135,.35),inset 0 0 14px rgba(0,255,135,.1)}
+#brush-cursor.mode-wall{border-color:rgba(230,230,230,.9)}
+#brush-cursor.mode-erase{border-style:dashed;border-color:rgba(255,255,255,.75)}
+#brush-cursor.mode-hazard{border-color:var(--danger);box-shadow:0 0 16px rgba(255,42,133,.45),inset 0 0 14px rgba(255,42,133,.12)}
+
+/* Panel scrollbar */
+#panel-full{scrollbar-width:thin;scrollbar-color:rgba(0,242,254,.35) transparent}
+#panel-full::-webkit-scrollbar{width:5px}
+#panel-full::-webkit-scrollbar-track{background:transparent}
+#panel-full::-webkit-scrollbar-thumb{background:linear-gradient(var(--primary),var(--secondary));border-radius:3px;opacity:.5}
+
+/* Desktop hover polish */
+@media(hover:hover){
+  .top-btn:hover{border-color:var(--primary);box-shadow:0 0 12px rgba(0,242,254,.25);transform:translateY(-1px)}
+  .btn:hover{border-color:var(--primary);background:rgba(255,255,255,.1)}
+  .btn-primary:hover{box-shadow:0 0 16px rgba(0,255,135,.3)}
+  .btn-danger:hover{border-color:var(--danger);box-shadow:0 0 14px rgba(255,42,133,.25)}
+  .chip-btn:hover:not(.active),.brush-btn:hover:not(.active),.tab-btn:hover:not(.active){border-color:rgba(255,255,255,.3);color:var(--text);background:rgba(255,255,255,.09)}
+  .theme-card:hover:not(.active),.terrain-card:hover:not(.active),.preset-btn:hover{border-color:rgba(255,255,255,.3);transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .size-step:hover{border-color:var(--primary);color:var(--primary);background:rgba(0,242,254,.08)}
+  .switch:hover{box-shadow:0 0 10px rgba(0,242,254,.25)}
+  input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 20px var(--primary),0 2px 8px rgba(0,0,0,.6)}
+}
+.tab-btn:focus-visible,.btn:focus-visible,.chip-btn:focus-visible,.brush-btn:focus-visible,.size-step:focus-visible,.top-btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* Fix: compact legend on desktop (base rule previously overrode the media query) */
+@media (min-width:768px){
+  #legend{left:auto;right:20px;bottom:20px;width:auto;max-width:220px}
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+@media(max-height:520px){#legend{display:none}}
+@media(max-width:400px){#stats-bar{font-size:10px;padding:6px 9px;gap:7px}.stat-value{font-size:11px}.stat-item.stat-optional{display:none}#main-fab{width:48px;height:48px}.appear-row,.glow-mode-row,.behavior-row,.time-row{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<canvas id="sim-canvas"></canvas>
+<div id="brush-cursor"></div>
+<div id="stats-bar">
+  <div class="stat-item"><span class="stat-icon">⚡</span><span id="fps-val" class="stat-value">60</span></div>
+  <div class="stat-item stat-optional"><span class="stat-icon">🐜</span><span id="ant-count-val" class="stat-value">0</span></div>
+  <div class="stat-item"><span class="stat-icon">🍃</span><span id="score-val" class="stat-value green">0</span></div>
+  <div class="stat-item stat-optional"><span class="stat-icon">📍</span><span id="food-nodes-val" class="stat-value amber">0</span></div>
+</div>
+<div id="top-actions">
+  <button class="top-btn" id="btn-lang" title="Language / زبان">🌐 FA</button>
+  <button class="top-btn" id="btn-sound" title="Sound">🔇</button>
+  <button class="top-btn" id="btn-fullscreen" title="Fullscreen">⛶</button>
+</div>
+<button id="main-fab" aria-label="Settings">
+  <svg class="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  <svg class="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 9l6 6 6-6"/></svg>
+</button>
+<div id="legend">
+  <div class="legend-item"><span class="dot" id="lg-home" style="background:#00f2fe;box-shadow:0 0 8px #00f2fe"></span><span data-i18n="lgHome">فرومون بازگشت</span></div>
+  <div class="legend-item"><span class="dot" id="lg-food" style="background:#00ff87;box-shadow:0 0 8px #00ff87"></span><span data-i18n="lgFood">فرومون غذا</span></div>
+  <div class="legend-item"><span class="dot" id="lg-carrier" style="background:#ffaa00;box-shadow:0 0 8px #ffaa00"></span><span data-i18n="lgCarrier">مورچه باربر</span></div>
+</div>
+<aside id="bottom-panel">
+  <div id="panel-handle"><div class="handle-bar"></div></div>
+  <div id="panel-mini">
+    <div class="mini-stats">
+      <div><span class="m-icon">🐜</span><span id="mini-ants">1200</span></div>
+      <div><span class="m-icon">🍃</span><span id="mini-score">0</span></div>
+      <div><span class="m-icon">⚡</span><span id="mini-fps">60</span></div>
+    </div>
+    <div class="mini-hint" data-i18n="controls">کنترل‌ها</div>
+  </div>
+  <div id="panel-full">
+    <div class="panel-title">
+      <span data-i18n="panelTitle">شبیه‌ساز کلونی مورچه‌ها</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <small>ANT COLONY</small>
+        <button class="desktop-close" id="desktop-close-btn" title="Close">✕</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="brushes" data-i18n="tabTools">🖌 ابزار</button>
+      <button class="tab-btn" data-tab="terrain" data-i18n="tabTerrain">🌍 زمین</button>
+      <button class="tab-btn" data-tab="params" data-i18n="tabParams">⚙ پارامترها</button>
+      <button class="tab-btn" data-tab="behavior" data-i18n="tabBehavior">🧠 رفتار</button>
+      <button class="tab-btn" data-tab="themes" data-i18n="tabThemes">🎨 تم</button>
+      <button class="tab-btn" data-tab="presets" data-i18n="tabPresets">🗺 سناریو</button>
+      <button class="tab-btn" data-tab="audio" data-i18n="tabAudio">🔊 صدا</button>
+    </div>
+
+    <div class="tab-pane active" data-pane="brushes">
+      <div class="control-label" style="margin-bottom:6px"><span data-i18n="brushDesc">ابزار لمسی — با کشیدن، خط پیوسته رسم می‌شود</span></div>
+      <div class="brush-selector">
+        <button class="brush-btn active" data-brush="food"><span class="b-icon">🍃</span><span data-i18n="brushFood">غذا</span></button>
+        <button class="brush-btn" data-brush="wall"><span class="b-icon">🧱</span><span data-i18n="brushWall">مانع</span></button>
+        <button class="brush-btn" data-brush="erase"><span class="b-icon">🧽</span><span data-i18n="brushErase">پاک‌کن</span></button>
+        <button class="brush-btn" data-brush="hazard"><span class="b-icon">🔥</span><span data-i18n="brushHazard">خطر</span></button>
+      </div>
+      <div class="control-group"><div class="control-label"><span data-i18n="brushSize">اندازه قلم</span><span id="lbl-brush">۱ / ۱۰</span></div>
+        <div class="brush-size-row">
+          <button class="size-step" id="brush-dec" aria-label="کوچک‌تر">−</button>
+          <input type="range" id="sl-brush" min="1" max="10" step="1" value="1">
+          <button class="size-step" id="brush-inc" aria-label="بزرگ‌تر">+</button>
+        </div>
+      </div>
+      <div class="kbd-hints" data-i18n="kbdHints">⌨ Space توقف · 1–4 ابزار · [ ] اندازه قلم · F تمام‌صفحه</div>
+      <div class="action-buttons">
+        <button class="btn btn-primary" id="btn-spawn-food" data-i18n="spawnFood">+ غذای جدید</button>
+        <button class="btn btn-accent" id="btn-pause" data-i18n="pause">⏸ توقف</button>
+        <button class="btn" id="btn-clear-trails" data-i18n="clearTrails">پاکسازی فرومون</button>
+        <button class="btn" id="btn-clear-walls" data-i18n="clearWalls">حذف موانع</button>
+      </div>
+    </div>
+
+    <div class="tab-pane" data-pane="terrain">
+      <div class="control-label" style="margin-bottom:8px"><span data-i18n="terrainDesc">زمین کف — بافت و رنگ را انتخاب کنید</span></div>
+      <div class="terrain-grid" id="terrain-grid"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="terrainBright">شفافیت زمین (روشنایی)</span><span id="lbl-terrain-bright">100%</span></div><input type="range" id="sl-terrain-bright" min="40" max="130" step="5" value="100"></div>
+    </div>
+
+    <div class="tab-pane" data-pane="params">
+      <div class="control-group"><div class="control-label"><span data-i18n="antCount">تعداد مورچه‌ها</span><span id="lbl-ants">1200</span></div><input type="range" id="sl-ants" min="20" max="2500" step="20" value="1200"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="antSpeed">سرعت حرکت</span><span id="lbl-speed">4.0</span></div><input type="range" id="sl-speed" min="0.1" max="25" step="0.1" value="4.0"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="evaporation">ماندگاری فرومون</span><span id="lbl-evap">99.0%</span></div><input type="range" id="sl-evap" min="0.85" max="0.9995" step="0.0005" value="0.99"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="sensorDist">فاصله دید حسگر</span><span id="lbl-sensor">25 px</span></div><input type="range" id="sl-sensor" min="5" max="100" step="1" value="25"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="wander">ضریب کاوش</span><span id="lbl-wander">0.22</span></div><input type="range" id="sl-wander" min="0.01" max="2" step="0.01" value="0.22"></div>
+      <div class="control-label" style="margin-bottom:6px"><span data-i18n="mix">ترکیب نوع مورچه‌ها</span></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="scout">پیشاهنگ</span><span id="lbl-scout">30%</span></div><input type="range" id="sl-scout" min="0" max="100" step="5" value="30"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="worker">کارگر</span><span id="lbl-worker">50%</span></div><input type="range" id="sl-worker" min="0" max="100" step="5" value="50"></div>
+      <div class="control-group"><div class="control-label"><span data-i18n="carrier">باربر</span><span id="lbl-carrier">20%</span></div><input type="range" id="sl-carrier" min="0" max="100" step="5" value="20"></div>
+    </div>
+
+    <div class="tab-pane" data-pane="behavior">
+      <div class="control-label" style="margin-bottom:6px"><span data-i18n="behaviorMode">حالت رفتاری کلونی</span></div>
+      <div class="behavior-row">
+        <button class="chip-btn" data-mode="explorer"><span class="c-icon">🔭</span><span data-i18n="explorer">کاوشگر</span></button>
+        <button class="chip-btn active" data-mode="balanced"><span class="c-icon">⚖</span><span data-i18n="balanced">متعادل</span></button>
+        <button class="chip-btn" data-mode="exploiter"><span class="c-icon">🎯</span><span data-i18n="exploiter">بهره‌بردار</span></button>
+      </div>
+      <div class="control-label" style="margin-bottom:6px"><span data-i18n="timeScale">مقیاس زمانی</span></div>
+      <div class="time-row">
+        <button class="chip-btn" data-time="0.5">۰.۵×</button>
+        <button class="chip-btn active" data-time="1">۱×</button>
+        <button class="chip-btn" data-time="2">۲×</button>
+        <button class="chip-btn" data-time="4">۴×</button>
+      </div>
+      <div class="control-label" style="margin-bottom:6px"><span data-i18n="appearance">نوع نمایش مورچه</span></div>
+      <div class="appear-row">
+        <button class="chip-btn active" data-appear="realistic"><span class="c-icon">🐜</span><span data-i18n="appearReal">واقعی</span></button>
+        <button class="chip-btn" data-appear="simple"><span class="c-icon">〰</span><span data-i18n="appearSimple">ساده</span></button>
+        <button class="chip-btn" data-appear="dots"><span class="c-icon">•</span><span data-i18n="appearDots">نقطه</span></button>
+        <button class="chip-btn" data-appear="streaks"><span class="c-icon">✨</span><span data-i18n="appearStreaks">دنباله</span></button>
+      </div>
+      <div class="toggle-row"><div><div class="tr-label" data-i18n="trailsOnly">نمایش فقط فرومون‌ها</div></div><div class="switch" id="sw-trails"></div></div>
+      <div class="toggle-row"><div><div class="tr-label" data-i18n="particles">نمایش ذرات</div></div><div class="switch on" id="sw-particles"></div></div>
+    </div>
+
+    <div class="tab-pane" data-pane="themes">
+      <div class="control-label" style="margin-bottom:8px"><span data-i18n="themeDesc">پالت رنگ — روی فرومون‌ها و مورچه‌ها اثر می‌گذارد</span></div>
+      <div class="theme-grid" id="theme-grid"></div>
+    </div>
+
+    <div class="tab-pane" data-pane="presets">
+      <div class="control-label" style="margin-bottom:8px"><span data-i18n="presetDesc">سناریوی آماده — نقشه را از نو می‌سازد</span></div>
+      <div class="preset-grid">
+        <button class="preset-btn" data-preset="open"><span class="p-icon">🌾</span><span data-i18n="presetOpen">دشت باز</span></button>
+        <button class="preset-btn" data-preset="maze"><span class="p-icon">🌀</span><span data-i18n="presetMaze">هزارتو</span></button>
+        <button class="preset-btn" data-preset="pillars"><span class="p-icon">🏛</span><span data-i18n="presetPillars">ستون‌ها</span></button>
+        <button class="preset-btn" data-preset="corridor"><span class="p-icon">🚪</span><span data-i18n="presetCorridor">راهرو</span></button>
+        <button class="preset-btn" data-preset="islands"><span class="p-icon">🏝</span><span data-i18n="presetIslands">جزیره‌ها</span></button>
+        <button class="preset-btn" data-preset="spiral"><span class="p-icon">🌪</span><span data-i18n="presetSpiral">مارپیچ</span></button>
+      </div>
+      <div class="action-buttons"><button class="btn btn-primary btn-wide" id="btn-save" data-i18n="save">💾 ذخیره تنظیمات</button></div>
+    </div>
+
+    <div class="tab-pane" data-pane="audio">
+      <div class="control-group"><div class="control-label"><span data-i18n="volume">بلندی صدا</span><span id="lbl-vol">50%</span></div><input type="range" id="sl-vol" min="0" max="100" step="5" value="50"></div>
+      <div class="toggle-row"><div><div class="tr-label" data-i18n="ambientSound">صدای محیط</div><div class="tr-sub" data-i18n="ambientSub">درون + جیک‌جیک</div></div><div class="switch on" id="sw-ambient"></div></div>
+      <div class="toggle-row"><div><div class="tr-label" data-i18n="eventSound">صدای رویدادها</div></div><div class="switch on" id="sw-events"></div></div>
+      <div class="toggle-row"><div><div class="tr-label" data-i18n="milestoneSound">نقاط عطف</div></div><div class="switch on" id="sw-milestone"></div></div>
+    </div>
+
+    <div class="action-buttons" style="margin-top:10px"><button class="btn btn-danger btn-wide" id="btn-reset" data-i18n="reset">♻️ ریست اکوسیستم</button></div>
+  </div>
+</aside>
+
+<script>
+(function(){
+'use strict';
+
+/* ============ I18N DICTIONARY ============ */
+const i18n = {
+  fa: {
+    controls: "کنترل‌ها", panelTitle: "شبیه‌ساز کلونی مورچه‌ها",
+    tabTools: "🖌 ابزار", tabTerrain: "🌍 زمین", tabParams: "⚙ پارامترها", tabBehavior: "🧠 رفتار", tabThemes: "🎨 تم", tabPresets: "🗺 سناریو", tabAudio: "🔊 صدا",
+    brushDesc: "ابزار لمسی — با کشیدن، خط پیوسته رسم می‌شود",
+    brushFood: "غذا", brushWall: "مانع", brushErase: "پاک‌کن", brushHazard: "خطر",
+    brushSize: "اندازه قلم", spawnFood: "+ غذای جدید", pause: "⏸ توقف", resume: "▶️ ادامه", clearTrails: "پاکسازی فرومون", clearWalls: "حذف موانع",
+    terrainDesc: "زمین کف — بافت و رنگ را انتخاب کنید", terrainBright: "روشنایی زمین",
+    antCount: "تعداد مورچه‌ها", antSpeed: "سرعت حرکت", evaporation: "ماندگاری فرومون", sensorDist: "فاصله دید حسگر", wander: "ضریب کاوش",
+    mix: "ترکیب نوع مورچه‌ها", scout: "پیشاهنگ", worker: "کارگر", carrier: "باربر",
+    behaviorMode: "حالت رفتاری کلونی", explorer: "کاوشگر", balanced: "متعادل", exploiter: "بهره‌بردار",
+    timeScale: "مقیاس زمانی", appearance: "نوع نمایش مورچه", appearReal: "واقعی", appearSimple: "ساده", appearDots: "نقطه", appearStreaks: "دنباله",
+    trailsOnly: "نمایش فقط فرومون‌ها", particles: "نمایش ذرات",
+    themeDesc: "پالت رنگ — روی فرومون‌ها و مورچه‌ها اثر می‌گذارد",
+    presetDesc: "سناریوی آماده — نقشه را از نو می‌سازد",
+    presetOpen: "دشت باز", presetMaze: "هزارتو", presetPillars: "ستون‌ها", presetCorridor: "راهرو", presetIslands: "جزیره‌ها", presetSpiral: "مارپیچ",
+    save: "💾 ذخیره تنظیمات", volume: "بلندی صدا", ambientSound: "صدای محیط", ambientSub: "درون + جیک‌جیک", eventSound: "صدای رویدادها", milestoneSound: "نقاط عطف",
+    reset: "♻️ ریست اکوسیستم", lgHome: "فرومون بازگشت", lgFood: "فرومون غذا", lgCarrier: "مورچه باربر",
+    toastSaved: "تنظیمات ذخیره شد ✓", toastReset: "اکوسیستم ریست شد", toastClearedTrails: "فرومون‌ها پاک شدند", toastClearedWalls: "موانع پاک شدند",
+    toastPreset: "سناریو بارگذاری شد", toastRandomized: "ترکیب خلاقانه: {theme} + {terrain}", toastSoundOn: "صدا فعال شد", toastFSUnsupported: "تمام‌صفحه پشتیبانی نمی‌شود",
+    msgCollected: "غذا جمع شد",
+    kbdHints: "⌨ Space توقف · 1–4 ابزار · [ ] اندازه قلم · F تمام‌صفحه",
+    nestLabel: "لانه"
+  },
+  en: {
+    controls: "Controls", panelTitle: "Ant Colony Simulator",
+    tabTools: "🖌 Tools", tabTerrain: "🌍 Terrain", tabParams: "⚙ Params", tabBehavior: "🧠 Behavior", tabThemes: "🎨 Themes", tabPresets: "🗺 Presets", tabAudio: "🔊 Audio",
+    brushDesc: "Touch tools — drag to draw continuous lines",
+    brushFood: "Food", brushWall: "Wall", brushErase: "Eraser", brushHazard: "Danger",
+    brushSize: "Brush Size", spawnFood: "+ New Food", pause: "⏸ Pause", resume: "▶️ Resume", clearTrails: "Clear Pheromones", clearWalls: "Clear Obstacles",
+    terrainDesc: "Ground Terrain — select texture and color", terrainBright: "Terrain Brightness",
+    antCount: "Ant Count", antSpeed: "Movement Speed", evaporation: "Pheromone Evaporation", sensorDist: "Sensor Distance", wander: "Exploration Factor",
+    mix: "Ant Type Mix", scout: "Scout", worker: "Worker", carrier: "Carrier",
+    behaviorMode: "Colony Behavior Mode", explorer: "Explorer", balanced: "Balanced", exploiter: "Exploiter",
+    timeScale: "Time Scale", appearance: "Ant Appearance", appearReal: "Realistic", appearSimple: "Simple", appearDots: "Dots", appearStreaks: "Streaks",
+    trailsOnly: "Trails Only", particles: "Show Particles",
+    themeDesc: "Color Palette — affects pheromones and ants",
+    presetDesc: "Presets — regenerates the map",
+    presetOpen: "Open Field", presetMaze: "Maze", presetPillars: "Pillars", presetCorridor: "Corridor", presetIslands: "Islands", presetSpiral: "Spiral",
+    save: "💾 Save Settings", volume: "Volume", ambientSound: "Ambient Sound", ambientSub: "Drone + chirps", eventSound: "Event Sounds", milestoneSound: "Milestones",
+    reset: "♻️ Reset Ecosystem", lgHome: "Return Pheromone", lgFood: "Food Pheromone", lgCarrier: "Carrier Ant",
+    toastSaved: "Settings saved ✓", toastReset: "Ecosystem reset", toastClearedTrails: "Pheromones cleared", toastClearedWalls: "Obstacles cleared",
+    toastPreset: "Preset loaded", toastRandomized: "Creative combo: {theme} + {terrain}", toastSoundOn: "Sound enabled", toastFSUnsupported: "Fullscreen not supported",
+    msgCollected: "food collected",
+    kbdHints: "⌨ Space pause · 1–4 tools · [ ] brush size · F fullscreen",
+    nestLabel: "Nest"
+  }
+};
+let currentLang = localStorage.getItem('swarmLang') || 'fa';
+
+function t(key) { return i18n[currentLang][key] || key; }
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('swarmLang', lang);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+  
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (i18n[lang][key]) el.textContent = i18n[lang][key];
+  });
+
+  document.getElementById('btn-lang').textContent = lang === 'fa' ? '🌐 EN' : '🌐 FA';
+  
+  buildThemeGrid();
+  buildTerrainGrid();
+  
+  const pauseBtn = document.getElementById('btn-pause');
+  if (CONFIG.paused) pauseBtn.textContent = t('resume');
+  else pauseBtn.textContent = t('pause');
+  if (typeof setBrushSize === 'function') setBrushSize(CONFIG.brushSize); // re-localize brush label
+}
+
+/* ============ CANVAS ============ */
+const canvas = document.getElementById('sim-canvas');
+const ctx = canvas.getContext('2d',{alpha:false});
+const gridCanvas = document.createElement('canvas');
+const gridCtx = gridCanvas.getContext('2d',{alpha:true});
+const wallCanvas = document.createElement('canvas');
+const wallCtx = wallCanvas.getContext('2d',{alpha:true});
+const terrainCanvas = document.createElement('canvas');
+const terrainCtx = terrainCanvas.getContext('2d',{alpha:false});
+
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
+let width = window.innerWidth, height = window.innerHeight;
+let GRID_SCALE = 4, invScale = 1/GRID_SCALE;
+let gridW = 0, gridH = 0;
+
+const CHUNK_LOG = 4, CHUNK_SIZE = 1 << CHUNK_LOG;
+const COLD_THRESHOLD = 0.0035;
+let chunkW = 0, chunkH = 0;
+
+let homePheromone, foodPheromone, nextHome, nextFood, walls, hazards;
+let chunkMaxH, chunkMaxF, chunkDirty;
+let gridImageData, gridPixels;
+let wallCanvasDirty = true;
+let wallPattern = null, hazardPattern = null;
+const hazardGlowCanvas = document.createElement('canvas');
+const hazardGlowCtx = hazardGlowCanvas.getContext('2d',{alpha:true});
+let hazardCellsPresent = false;
+
+/* ============ TERRAINS ============ */
+const TERRAINS = {
+  sand:    { name:{fa:'شن', en:'Sand'}, base:'#c9b088', darker:'#a68a5e', accent:'#e0d0a8', grain:'#b09a70', crack:null },
+  forest:  { name:{fa:'جنگل', en:'Forest'}, base:'#31432a', darker:'#1f2e18', accent:'#4a6b3a', grain:'#3a4f30', crack:null },
+  stone:   { name:{fa:'سنگ', en:'Stone'}, base:'#4a4a52', darker:'#2e2e36', accent:'#5f5f68', grain:'#3f3f48', crack:'#2a2a32' },
+  grass:   { name:{fa:'چمن', en:'Grass'}, base:'#3f5a35', darker:'#2a4224', accent:'#5a8048', grain:'#4a6b3c', crack:null },
+  moon:    { name:{fa:'ماه', en:'Moon'}, base:'#8a8a95', darker:'#5a5a65', accent:'#a8a8b3', grain:'#787882', crack:'#4a4a55' },
+  snow:    { name:{fa:'برف', en:'Snow'}, base:'#dfe6ee', darker:'#b8c5d0', accent:'#ffffff', grain:'#e8eef5', crack:null },
+  savanna: { name:{fa:'ساوان', en:'Savanna'}, base:'#a89060', darker:'#7a6840', accent:'#c8b078', grain:'#948055', crack:null },
+  obsidian:{ name:{fa:'ابسیدین', en:'Obsidian'}, base:'#1a1a20', darker:'#0a0a10', accent:'#2e2e38', grain:'#151520', crack:'#080810' }
+};
+let currentTerrain = 'sand';
+let terrainBrightness = 100;
+
+const WALL_STYLES = {
+  sand:    { base:'#7a5f3f', brick:'#8b6f4f', hi:'#a8895f', sh:'#4a3a25', mortar:'#2a1f15' },
+  forest:  { base:'#2e3f22', brick:'#3f5230', hi:'#5a703f', sh:'#1a2410', mortar:'#0e1508' },
+  stone:   { base:'#3a3a42', brick:'#4a4a52', hi:'#6a6a72', sh:'#1a1a22', mortar:'#0d0d15' },
+  grass:   { base:'#3a5028', brick:'#4c6532', hi:'#6a8a45', sh:'#22331a', mortar:'#121f0a' },
+  moon:    { base:'#5a5a68', brick:'#6a6a78', hi:'#888898', sh:'#3a3a48', mortar:'#22222e' },
+  snow:    { base:'#8898a8', brick:'#9aacb8', hi:'#c0d0dc', sh:'#5a6a7a', mortar:'#3a4a5a' },
+  savanna: { base:'#6a5535', brick:'#7a6540', hi:'#958060', sh:'#3a2d1a', mortar:'#1a1508' },
+  obsidian:{ base:'#14141a', brick:'#1f1f28', hi:'#3a3a48', sh:'#08080e', mortar:'#030308' }
+};
+
+/* ============ THEMES ============ */
+const THEMES = {
+  neon:{name:{fa:'نئون شب',en:'Neon Night'},bg:'#06080e',primary:'#00f2fe',secondary:'#00ff87',accent:'#ffaa00',danger:'#ff2a85',purple:'#b464ff',homeRGB:[0,242,254],foodRGB:[0,255,135],antScout:'#8db8e8',antWorker:'#c8e8ff',antCarrier:'#ffaa00',foods:['#00ff87','#00f2fe','#4f9dff','#b464ff','#ff2a85','#ffaa00','#a3ff5c','#ff6ba3']},
+  cyberpunk:{name:{fa:'سایبرپانک',en:'Cyberpunk'},bg:'#0b0416',primary:'#ff2a85',secondary:'#00f2fe',accent:'#f7ff00',danger:'#ff5c00',purple:'#b464ff',homeRGB:[255,42,133],foodRGB:[0,242,254],antScout:'#ff7eb3',antWorker:'#ffd6f0',antCarrier:'#f7ff00',foods:['#ff2a85','#00f2fe','#f7ff00','#b464ff','#ff5c00','#ff6ba3','#4f9dff','#a3ff5c']},
+  ocean:{name:{fa:'اقیانوس',en:'Ocean'},bg:'#020a14',primary:'#00d4ff',secondary:'#00ffc8',accent:'#7affca',danger:'#ff5c93',purple:'#7aa5ff',homeRGB:[0,150,255],foodRGB:[0,255,200],antScout:'#7ac9ff',antWorker:'#c8f0ff',antCarrier:'#7affca',foods:['#00ffc8','#00d4ff','#00a2ff','#7aa5ff','#00fff0','#7affca','#4affb8','#a0f0ff']},
+  sunset:{name:{fa:'غروب',en:'Sunset'},bg:'#12060a',primary:'#ff6b3d',secondary:'#ffb347',accent:'#ff3d8a',danger:'#ff2a2a',purple:'#ff7eb3',homeRGB:[255,100,60],foodRGB:[255,190,60],antScout:'#ffb39d',antWorker:'#ffe0cc',antCarrier:'#ffd700',foods:['#ffb347','#ff6b3d','#ff3d8a','#ff2a2a','#ffd700','#ff7eb3','#ff9d4d','#ff5c93']},
+  matrix:{name:{fa:'ماتریکس',en:'Matrix'},bg:'#000000',primary:'#00ff41',secondary:'#00cc33',accent:'#7fff00',danger:'#ff0044',purple:'#00ff88',homeRGB:[0,180,40],foodRGB:[0,255,65],antScout:'#3a9950',antWorker:'#80ff99',antCarrier:'#7fff00',foods:['#00ff41','#00cc33','#7fff00','#00ff88','#00ffaa','#33ff66','#66ff88','#00dd44']},
+  candy:{name:{fa:'آب‌نبات',en:'Candy'},bg:'#0e0614',primary:'#ff7eb3',secondary:'#a0e7e5',accent:'#ffd670',danger:'#ff3d8a',purple:'#c084fc',homeRGB:[255,126,179],foodRGB:[160,231,229],antScout:'#d4a5e8',antWorker:'#ffe0ee',antCarrier:'#ffd670',foods:['#ff7eb3','#a0e7e5','#c084fc','#ffd670','#ffb3d9','#80c8e8','#e0a0ff','#ffe0a0']},
+  amber:{name:{fa:'کهربا',en:'Amber'},bg:'#0d0705',primary:'#ffb347',secondary:'#ffd966',accent:'#e69500',danger:'#c43e2b',purple:'#a86b3d',homeRGB:[180,120,60],foodRGB:[255,200,100],antScout:'#6b4a2e',antWorker:'#3d2817',antCarrier:'#8a5a30',foods:['#c4a35a','#8fa85a','#d4956b','#a8b56b','#c47a4a','#d6b878','#8a6a3a','#b89060']},
+  fire:{name:{fa:'آتش',en:'Fire'},bg:'#100202',primary:'#ff6b1a',secondary:'#ffcc00',accent:'#ff2a2a',danger:'#ff0055',purple:'#ff7b00',homeRGB:[255,100,20],foodRGB:[255,200,0],antScout:'#c44a1a',antWorker:'#ff8c42',antCarrier:'#ffd700',foods:['#ffcc00','#ff6b1a','#ff2a2a','#ff0055','#ffaa00','#ff8c42','#ffd966','#ff4400']},
+  ice:{name:{fa:'یخ',en:'Ice'},bg:'#040a14',primary:'#7fe8ff',secondary:'#c8f0ff',accent:'#b8d8ff',danger:'#8ba8ff',purple:'#a0d8ff',homeRGB:[120,200,255],foodRGB:[220,240,255],antScout:'#8db8e8',antWorker:'#dfeeff',antCarrier:'#b8d8ff',foods:['#c8f0ff','#7fe8ff','#a0d8ff','#b8d8ff','#e0f4ff','#90d0ff','#c0e0ff','#a8e8f0']},
+  vaporwave:{name:{fa:'ویپورویو',en:'Vaporwave'},bg:'#0a0418',primary:'#ff71ce',secondary:'#01cdfe',accent:'#fffb96',danger:'#ff2a85',purple:'#b967ff',homeRGB:[255,113,206],foodRGB:[1,205,254],antScout:'#ffb8e0',antWorker:'#e0d6ff',antCarrier:'#fffb96',foods:['#ff71ce','#01cdfe','#fffb96','#b967ff','#05ffa1','#ff99d6','#80e0ff','#e0ff99']},
+  forest:{name:{fa:'جنگل',en:'Forest'},bg:'#050a06',primary:'#4ade80',secondary:'#a3e635',accent:'#fbbf24',danger:'#dc2626',purple:'#059669',homeRGB:[74,222,128],foodRGB:[163,230,53],antScout:'#5c4030',antWorker:'#3d2817',antCarrier:'#8b5a2b',foods:['#a3e635','#4ade80','#84cc16','#65a30d','#fbbf24','#bef264','#22c55e','#d9f99d']},
+  mono:{name:{fa:'تکرنگ',en:'Monochrome'},bg:'#0a0a0a',primary:'#e0e0e0',secondary:'#ffffff',accent:'#a0a0a0',danger:'#666666',purple:'#c0c0c0',homeRGB:[180,180,180],foodRGB:[240,240,240],antScout:'#888888',antWorker:'#e8e8e8',antCarrier:'#c8c8c8',foods:['#ffffff','#d0d0d0','#a8a8a8','#e8e8e8','#b8b8b8','#f0f0f0','#909090','#dcdcdc']}
+};
+let currentTheme = 'neon';
+
+/* ============ CONFIG ============ */
+const CONFIG = {
+  antCount: 1200, antSpeed: 4.0, evaporation: 0.99, diffusion: 0.12,
+  sensorDist: 25, sensorAngle: 0.55, turnSpeed: 0.28, wanderStrength: 0.22,
+  brushMode: 'food', brushSize: 1, paused: false,
+  mixScout: 30, mixWorker: 50, mixCarrier: 20,
+  volume: 0.5, ambientOn: true, eventsOn: true, milestoneOn: true,
+  behavior: 'balanced', timeScale: 1, antAppearance: 'realistic',
+  trailsOnly: false, particlesOn: true
+};
+const colony = {x:0,y:0,radius:24,foodCollected:0,pulse:0};
+let foodSources = [];
+let nextMilestone = 100;
+const SENSOR_COS = Math.cos(CONFIG.sensorAngle);
+const SENSOR_SIN = Math.sin(CONFIG.sensorAngle);
+const pheroCoef = {hR:0,hG:242,hB:254,fR:0,fG:255,fB:135};
+
+/* ============ ANT BUFFERS ============ */
+let antCount = 0;
+let antX, antY, antAngle, antCos, antSin, antHasFood, antType, antPheroEnergy;
+const ANT_SPEED_MUL = [1.6, 1.0, 0.75];
+const ANT_PHERO_MUL = [0.5, 1.0, 1.7];
+const ANT_WANDER_MUL = [1.4, 1.0, 0.8];
+const ANT_SIZES = [22, 24, 28];
+
+function pickAntTypeIdx(){
+  const r = Math.random() * (CONFIG.mixScout + CONFIG.mixWorker + CONFIG.mixCarrier || 1);
+  if (r < CONFIG.mixScout) return 0;
+  if (r < CONFIG.mixScout + CONFIG.mixWorker) return 1;
+  return 2;
+}
+function initAntBuffers(n){
+  antCount = n;
+  antX = new Float32Array(n); antY = new Float32Array(n);
+  antAngle = new Float32Array(n); antCos = new Float32Array(n); antSin = new Float32Array(n);
+  antHasFood = new Uint8Array(n); antType = new Uint8Array(n); antPheroEnergy = new Float32Array(n);
+  for (let i = 0; i < n; i++){
+    antX[i] = colony.x + (Math.random()-0.5)*colony.radius;
+    antY[i] = colony.y + (Math.random()-0.5)*colony.radius;
+    const a = Math.random()*Math.PI*2;
+    antAngle[i] = a; antCos[i] = Math.cos(a); antSin[i] = Math.sin(a);
+    antHasFood[i] = 0; antType[i] = pickAntTypeIdx(); antPheroEnergy[i] = 1.0;
+  }
+}
+function resizeAntBuffers(n){
+  if (n === antCount) return;
+  const old = antCount, oldX = antX, oldY = antY, oldAng = antAngle, oldCos = antCos, oldSin = antSin, oldHF = antHasFood, oldT = antType, oldE = antPheroEnergy;
+  antCount = n;
+  antX = new Float32Array(n); antY = new Float32Array(n);
+  antAngle = new Float32Array(n); antCos = new Float32Array(n); antSin = new Float32Array(n);
+  antHasFood = new Uint8Array(n); antType = new Uint8Array(n); antPheroEnergy = new Float32Array(n);
+  const c = Math.min(old, n);
+  antX.set(oldX.subarray(0,c)); antY.set(oldY.subarray(0,c));
+  antAngle.set(oldAng.subarray(0,c)); antCos.set(oldCos.subarray(0,c)); antSin.set(oldSin.subarray(0,c));
+  antHasFood.set(oldHF.subarray(0,c)); antType.set(oldT.subarray(0,c)); antPheroEnergy.set(oldE.subarray(0,c));
+  for (let i = old; i < n; i++){
+    antX[i] = colony.x + (Math.random()-0.5)*colony.radius;
+    antY[i] = colony.y + (Math.random()-0.5)*colony.radius;
+    const a = Math.random()*Math.PI*2;
+    antAngle[i] = a; antCos[i] = Math.cos(a); antSin[i] = Math.sin(a);
+    antType[i] = pickAntTypeIdx(); antPheroEnergy[i] = 1.0;
+  }
+}
+
+/* ============ PARTICLES ============ */
+const MAX_PARTICLES = 300;
+const pX = new Float32Array(MAX_PARTICLES), pY = new Float32Array(MAX_PARTICLES);
+const pVX = new Float32Array(MAX_PARTICLES), pVY = new Float32Array(MAX_PARTICLES);
+const pLife = new Float32Array(MAX_PARTICLES), pMaxLife = new Float32Array(MAX_PARTICLES);
+const pSize = new Float32Array(MAX_PARTICLES);
+const pColor = new Array(MAX_PARTICLES);
+let particleCount = 0;
+function burstParticles(x, y, count, color){
+  if (!CONFIG.particlesOn) return;
+  const room = MAX_PARTICLES - particleCount;
+  if (room <= 0) return;
+  if (count > room) count = room;
+  for (let i = 0; i < count; i++){
+    const idx = particleCount++;
+    const a = Math.random()*Math.PI*2;
+    const s = 0.6 + Math.random()*2;
+    pX[idx]=x; pY[idx]=y; pVX[idx]=Math.cos(a)*s; pVY[idx]=Math.sin(a)*s;
+    pLife[idx]=1; pMaxLife[idx]=0.6+Math.random()*0.6; pSize[idx]=1.5+Math.random()*2;
+    pColor[idx]=color;
+  }
+}
+function updateParticles(dt){
+  for (let i = particleCount-1; i >= 0; i--){
+    pX[i]+=pVX[i]; pY[i]+=pVY[i];
+    pVX[i]*=0.94; pVY[i]*=0.94;
+    pLife[i] -= dt/pMaxLife[i];
+    if (pLife[i] <= 0){
+      const last = particleCount-1;
+      if (i !== last){
+        pX[i]=pX[last]; pY[i]=pY[last]; pVX[i]=pVX[last]; pVY[i]=pVY[last];
+        pLife[i]=pLife[last]; pMaxLife[i]=pMaxLife[last]; pSize[i]=pSize[last]; pColor[i]=pColor[last];
+      }
+      particleCount--;
+    }
+  }
+}
+
+/* ============ COLOR UTILS ============ */
+const _colorCache = Object.create(null);
+const _tmpCtx = document.createElement('canvas').getContext('2d');
+_tmpCtx.canvas.width = 1; _tmpCtx.canvas.height = 1;
+function colorToRGB(color){
+  if (_colorCache[color]) return _colorCache[color];
+  _tmpCtx.clearRect(0,0,1,1);
+  _tmpCtx.fillStyle = '#000'; _tmpCtx.fillStyle = color;
+  _tmpCtx.fillRect(0,0,1,1);
+  const d = _tmpCtx.getImageData(0,0,1,1).data;
+  const rgb = [d[0],d[1],d[2]];
+  _colorCache[color] = rgb;
+  return rgb;
+}
+function shadeRGB(rgb, f){
+  return [Math.min(255,Math.max(0,rgb[0]*f|0)),Math.min(255,Math.max(0,rgb[1]*f|0)),Math.min(255,Math.max(0,rgb[2]*f|0))];
+}
+
+/* ============ SPRITES ============ */
+function makeGlowSprite(color){
+  const rgb = colorToRGB(color);
+  const S = 96;
+  const cv = document.createElement('canvas');
+  cv.width = S; cv.height = S;
+  const c = cv.getContext('2d');
+  const g = c.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
+  g.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},1)`);
+  g.addColorStop(0.15, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)`);
+  g.addColorStop(0.4, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.22)`);
+  g.addColorStop(0.7, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.05)`);
+  g.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+  c.fillStyle = g; c.fillRect(0,0,S,S);
+  return cv;
+}
+const nestSprite = (()=>{
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 256;
+  const cx = cv.getContext('2d');
+  const g = cx.createRadialGradient(128,128,0,128,128,128);
+  g.addColorStop(0,'rgba(255,255,255,1)');
+  g.addColorStop(0.15,'rgba(255,255,255,0.85)');
+  g.addColorStop(0.35,'rgba(200,240,255,0.4)');
+  g.addColorStop(0.7,'rgba(100,180,255,0.12)');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=g; cx.fillRect(0,0,256,256);
+  return cv;
+})();
+/* realistic nest mound — tinted by current terrain, rebuilt on terrain change */
+let nestMoundSprite = null;
+function buildNestMound(){
+  const S = 192;
+  const cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const c = cv.getContext('2d');
+  const ws = WALL_STYLES[currentTerrain] || WALL_STYLES.sand;
+  const base = colorToRGB(ws.brick), hi = colorToRGB(ws.hi), sh = colorToRGB(ws.sh);
+  const cx = S/2, cy = S/2, R = S*0.46;
+  // soft ground shadow
+  let g = c.createRadialGradient(cx, cy+6, R*0.3, cx, cy+6, R);
+  g.addColorStop(0,'rgba(0,0,0,0.38)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.ellipse(cx, cy+6, R, R*0.92, 0, 0, Math.PI*2); c.fill();
+  // mound body, lit from top-left
+  g = c.createRadialGradient(cx-R*0.25, cy-R*0.3, R*0.1, cx, cy, R*0.95);
+  g.addColorStop(0, `rgb(${hi})`); g.addColorStop(0.55, `rgb(${base})`); g.addColorStop(1, `rgba(${sh},0.95)`);
+  c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R*0.92, 0, Math.PI*2); c.fill();
+  // excavated soil granules
+  for (let i = 0; i < 280; i++){
+    const a = Math.random()*Math.PI*2, d = Math.sqrt(Math.random())*R*0.88;
+    const px2 = cx + Math.cos(a)*d, py2 = cy + Math.sin(a)*d*0.96;
+    c.fillStyle = Math.random() < 0.5 ? `rgba(${sh},${0.25+Math.random()*0.3})` : `rgba(${hi},${0.16+Math.random()*0.24})`;
+    c.beginPath(); c.arc(px2, py2, 0.6+Math.random()*1.8, 0, Math.PI*2); c.fill();
+  }
+  // crater rim highlight
+  g = c.createRadialGradient(cx, cy, R*0.18, cx, cy, R*0.45);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(0.72,`rgba(${hi},0.4)`); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R*0.45, 0, Math.PI*2); c.fill();
+  // dark entrance tunnel
+  g = c.createRadialGradient(cx, cy, 0, cx, cy, R*0.22);
+  g.addColorStop(0,'rgba(0,0,0,0.95)'); g.addColorStop(0.75,'rgba(0,0,0,0.8)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(cx, cy, R*0.22, 0, Math.PI*2); c.fill();
+  return cv;
+}
+
+let foodSprites = [];
+function rebuildFoodSprites(){
+  const th = THEMES[currentTheme];
+  foodSprites = th.foods.map(fc => {
+    const rgb = colorToRGB(fc);
+    const cv = document.createElement('canvas');
+    cv.width = cv.height = 128;
+    const cx = cv.getContext('2d');
+    const g = cx.createRadialGradient(64,64,0,64,64,64);
+    g.addColorStop(0,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)`);
+    g.addColorStop(0.28,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.45)`);
+    g.addColorStop(0.62,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.14)`);
+    g.addColorStop(1,`rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+    cx.fillStyle=g; cx.fillRect(0,0,128,128);
+    return cv;
+  });
+}
+const ANT_ANGLE_STEPS = 16;
+const ANT_LOGICAL = 30;
+const GAIT_PHASES = 3;
+let antSpritesEmpty = null, antSpritesFood = null;
+function renderAntSprite(bodyHex, hasFood, angle, logical, phase){
+  const s = Math.ceil(logical * DPR);
+  const cv = document.createElement('canvas');
+  cv.width = s; cv.height = s;
+  const c = cv.getContext('2d');
+  c.scale(DPR, DPR);
+  c.translate(logical/2, logical/2);
+  c.rotate(angle);
+  const rgb = colorToRGB(bodyHex);
+  const dark = shadeRGB(rgb, 0.55);
+  const light = shadeRGB(rgb, 1.6);
+  const body = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+  const leg = `rgb(${dark[0]},${dark[1]},${dark[2]})`;
+  const hi = `rgb(${light[0]},${light[1]},${light[2]})`;
+  // soft contact shadow (rotation-invariant, light from above)
+  c.fillStyle = 'rgba(0,0,0,0.22)';
+  c.beginPath(); c.ellipse(-1,0.8,9.6,4.6,0,0,Math.PI*2); c.fill();
+  // tripod gait: leg sets A(0,3,4) / B(1,2,5) swing in anti-phase
+  // phase 0 = neutral, 1 = A forward / B back, 2 = A back / B forward
+  const swing = phase === 0 ? 0 : 1.5;
+  const dirA = phase === 1 ? 1 : -1;
+  c.strokeStyle = leg;
+  c.lineWidth = 0.85; c.lineCap='round'; c.lineJoin='round';
+  const legs = [[3,-1.6,5.5,-4.5,7,-7],[3,1.6,5.5,4.5,7,7],[0.5,-2.2,1.5,-5.5,2.5,-7.8],[0.5,2.2,1.5,5.5,2.5,7.8],[-2.5,-2.2,-4,-4.5,-5.5,-6.8],[-2.5,2.2,-4,4.5,-5.5,6.8]];
+  const SET_A = [1,0,0,1,1,0]; // which gait set each leg belongs to
+  for (let k = 0; k < 6; k++){
+    const L = legs[k];
+    const sh = swing * (SET_A[k] ? dirA : -dirA);
+    c.beginPath(); c.moveTo(L[0],L[1]); c.lineTo(L[2]+sh*0.6,L[3]); c.lineTo(L[4]+sh,L[5]); c.stroke();
+  }
+  // body segments (drawn above legs/shadow)
+  c.fillStyle = body;
+  c.beginPath(); c.ellipse(-7,0,6.2,4.2,0,0,Math.PI*2); c.fill();
+  c.fillStyle = hi;
+  c.beginPath(); c.ellipse(-8,-1.4,3.2,1.8,0,0,Math.PI*2); c.fill();
+  c.fillStyle = body;
+  c.beginPath(); c.ellipse(-1,0,1.2,1.1,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(1,0,2.9,2.2,0,0,Math.PI*2); c.fill();
+  c.beginPath(); c.ellipse(5,0,2.5,2.2,0,0,Math.PI*2); c.fill();
+  // head highlight + eyes for extra realism
+  c.fillStyle = hi;
+  c.beginPath(); c.ellipse(4.6,-0.8,1.1,0.7,0,0,Math.PI*2); c.fill();
+  c.fillStyle = 'rgba(0,0,0,0.55)';
+  c.beginPath(); c.arc(6.1,-1.3,0.55,0,Math.PI*2); c.fill();
+  c.beginPath(); c.arc(6.1,1.3,0.55,0,Math.PI*2); c.fill();
+  // antennae sway slightly with gait
+  const antSway = phase === 0 ? 0 : (phase === 1 ? 0.5 : -0.5);
+  c.strokeStyle = leg;
+  c.lineWidth = 0.7;
+  c.beginPath(); c.moveTo(6.5,-1); c.quadraticCurveTo(8.5,-2.5+antSway,10,-3.8+antSway); c.stroke();
+  c.beginPath(); c.moveTo(6.5,1); c.quadraticCurveTo(8.5,2.5+antSway,10,3.8+antSway); c.stroke();
+  if (hasFood){
+    c.fillStyle = '#ffd700';
+    c.beginPath(); c.arc(6.5,0,2,0,Math.PI*2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.65)';
+    c.beginPath(); c.arc(7,-0.6,0.7,0,Math.PI*2); c.fill();
+  }
+  return cv;
+}
+function rebuildAntSprites(){
+  const th = THEMES[currentTheme];
+  const colors = [th.antScout, th.antWorker, th.antCarrier];
+  antSpritesEmpty = [];
+  antSpritesFood = [];
+  for (let t = 0; t < 3; t++){
+    const phE = [], phF = [];
+    for (let p = 0; p < GAIT_PHASES; p++){
+      const rowE = [], rowF = [];
+      for (let i = 0; i < ANT_ANGLE_STEPS; i++){
+        const angle = (i/ANT_ANGLE_STEPS)*Math.PI*2;
+        rowE.push(renderAntSprite(colors[t], false, angle, ANT_LOGICAL, p));
+        rowF.push(renderAntSprite(colors[t], true, angle, ANT_LOGICAL, p));
+      }
+      phE.push(rowE); phF.push(rowF);
+    }
+    antSpritesEmpty.push(phE); antSpritesFood.push(phF);
+  }
+}
+
+/* ============ TERRAIN RENDERING ============ */
+function generateTerrainCanvas(){
+  terrainCanvas.width = Math.floor(width * DPR);
+  terrainCanvas.height = Math.floor(height * DPR);
+  const c = terrainCtx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const cfg = TERRAINS[currentTerrain];
+  const brightMul = terrainBrightness / 100;
+
+  const baseRgb = colorToRGB(cfg.base);
+  c.fillStyle = `rgb(${Math.min(255, baseRgb[0]*brightMul)|0},${Math.min(255, baseRgb[1]*brightMul)|0},${Math.min(255, baseRgb[2]*brightMul)|0})`;
+  c.fillRect(0, 0, width, height);
+
+  const blobCount = Math.min(400, Math.floor((width*height) / 5000));
+  const darkerRGB = colorToRGB(cfg.darker);
+  const accentRGB = colorToRGB(cfg.accent);
+  for (let i = 0; i < blobCount; i++){
+    const bx = Math.random()*width, by = Math.random()*height;
+    const r = 20 + Math.random()*80;
+    const useAccent = Math.random() < 0.5;
+    const col = useAccent ? accentRGB : darkerRGB;
+    const g = c.createRadialGradient(bx, by, 0, bx, by, r);
+    g.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},0.18)`);
+    g.addColorStop(1, `rgba(${col[0]},${col[1]},${col[2]},0)`);
+    c.fillStyle = g;
+    c.beginPath(); c.arc(bx, by, r, 0, Math.PI*2); c.fill();
+  }
+
+  const grainTile = document.createElement('canvas');
+  grainTile.width = grainTile.height = 32;
+  const gctx = grainTile.getContext('2d');
+  const gimg = gctx.createImageData(32, 32);
+  for (let i = 0; i < 32*32*4; i += 4){
+    const n = Math.random()*255 | 0;
+    gimg.data[i] = n; gimg.data[i+1] = n; gimg.data[i+2] = n;
+    gimg.data[i+3] = 14 + Math.random()*14;
+  }
+  gctx.putImageData(gimg, 0, 0);
+  c.fillStyle = c.createPattern(grainTile, 'repeat');
+  c.fillRect(0, 0, width, height);
+
+  if (cfg.crack){
+    const crackRgb = colorToRGB(cfg.crack);
+    c.strokeStyle = `rgba(${crackRgb[0]},${crackRgb[1]},${crackRgb[2]},0.55)`;
+    c.lineWidth = 0.6 + Math.random()*0.8;
+    for (let i = 0; i < 45; i++){
+      let x = Math.random()*width, y = Math.random()*height;
+      c.beginPath(); c.moveTo(x, y);
+      for (let j = 0; j < 4; j++){
+        x += (Math.random()-0.5)*50; y += (Math.random()-0.5)*50;
+        c.lineTo(x, y);
+      }
+      c.stroke();
+    }
+  }
+  if (currentTerrain === 'forest' || currentTerrain === 'grass' || currentTerrain === 'savanna'){
+    const accRgb = colorToRGB(cfg.accent);
+    c.strokeStyle = `rgba(${accRgb[0]},${accRgb[1]},${accRgb[2]},0.45)`;
+    c.lineWidth = 1;
+    for (let i = 0; i < 180; i++){
+      const x = Math.random()*width, y = Math.random()*height;
+      c.beginPath(); c.moveTo(x, y);
+      c.lineTo(x + (Math.random()-0.5)*7, y - 4 - Math.random()*6);
+      c.stroke();
+    }
+  }
+  if (currentTerrain === 'snow'){
+    c.fillStyle = 'rgba(255,255,255,0.85)';
+    for (let i = 0; i < 350; i++){
+      c.fillRect(Math.random()*width, Math.random()*height, 1, 1);
+    }
+  }
+
+  const vg = c.createRadialGradient(width/2, height/2, Math.min(width,height)*0.28, width/2, height/2, Math.max(width,height)*0.72);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+  c.fillStyle = vg;
+  c.fillRect(0, 0, width, height);
+}
+
+/* ============ WALL RENDERING ============ */
+function buildWallTexture(isHazard){
+  const style = isHazard ? { base:'#5a1010', brick:'#8b1a1a', hi:'#d93a3a', sh:'#3a0808', mortar:'#1a0303' } : WALL_STYLES[currentTerrain];
+  const TILE = 64;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = TILE;
+  const c = cv.getContext('2d');
+  c.fillStyle = style.mortar;
+  c.fillRect(0, 0, TILE, TILE);
+  const brickH = TILE / 2, brickW = TILE / 2;
+  for (let row = 0; row < 2; row++){
+    const y = row * brickH;
+    const offset = (row % 2) * (brickW / 2);
+    for (let col = -1; col < 3; col++){
+      const x = col * brickW + offset;
+      c.fillStyle = style.brick;
+      c.fillRect(x + 1, y + 1, brickW - 2, brickH - 2);
+      c.fillStyle = style.hi;
+      c.fillRect(x + 1, y + 1, brickW - 2, 1);
+      c.fillRect(x + 1, y + 1, 1, brickH - 2);
+      c.fillStyle = style.sh;
+      c.fillRect(x + 1, y + brickH - 2, brickW - 2, 1);
+      c.fillRect(x + brickW - 2, y + 1, 1, brickH - 2);
+    }
+  }
+  const img = c.getImageData(0, 0, TILE, TILE);
+  for (let i = 0; i < img.data.length; i += 4){
+    const n = (Math.random()-0.5)*22;
+    img.data[i] = Math.max(0, Math.min(255, img.data[i]+n));
+    img.data[i+1] = Math.max(0, Math.min(255, img.data[i+1]+n));
+    img.data[i+2] = Math.max(0, Math.min(255, img.data[i+2]+n));
+  }
+  c.putImageData(img, 0, 0);
+  return cv;
+}
+
+function rebuildWallCanvas(){
+  wallCanvas.width = Math.floor(width * DPR);
+  wallCanvas.height = Math.floor(height * DPR);
+  const c = wallCtx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.clearRect(0, 0, width, height);
+
+  let hasWalls = false, hasHazards = false;
+  for (let i = 0; i < walls.length; i++) {
+    if (walls[i] === 1) hasWalls = true;
+    if (hazards[i] === 1) hasHazards = true;
+  }
+  if (!hasWalls && !hasHazards){ wallCanvasDirty = false; return; }
+
+  if (hasWalls) {
+    wallPattern = c.createPattern(buildWallTexture(false), 'repeat');
+    c.beginPath();
+    for (let y = 0; y < gridH; y++){
+      const rowBase = y * gridW;
+      let runStart = -1;
+      for (let x = 0; x <= gridW; x++){
+        const isWall = x < gridW && walls[rowBase + x] === 1;
+        if (isWall && runStart < 0) runStart = x;
+        else if (!isWall && runStart >= 0){
+          c.rect(runStart * GRID_SCALE, y * GRID_SCALE, (x - runStart) * GRID_SCALE, GRID_SCALE);
+          runStart = -1;
+        }
+      }
+    }
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,0.75)';
+    c.shadowBlur = 6 * DPR;
+    c.shadowOffsetX = 1 * DPR;
+    c.shadowOffsetY = 2 * DPR;
+    c.fillStyle = wallPattern;
+    c.fill();
+    c.restore();
+
+    c.strokeStyle = 'rgba(255,255,240,0.22)';
+    c.lineWidth = 0.8;
+    c.beginPath();
+    for (let y = 0; y < gridH; y++){
+      const rowBase = y * gridW;
+      for (let x = 0; x < gridW; x++){
+        if (walls[rowBase + x] !== 1) continue;
+        const px = x * GRID_SCALE, py = y * GRID_SCALE;
+        if (y === 0 || walls[(y-1)*gridW + x] !== 1){ c.moveTo(px, py + 0.5); c.lineTo(px + GRID_SCALE, py + 0.5); }
+        if (x === 0 || walls[rowBase + x - 1] !== 1){ c.moveTo(px + 0.5, py); c.lineTo(px + 0.5, py + GRID_SCALE); }
+      }
+    }
+    c.stroke();
+  }
+
+  hazardCellsPresent = hasHazards;
+  if (hasHazards) {
+    hazardPattern = c.createPattern(buildWallTexture(true), 'repeat');
+    const hazPath = new Path2D();
+    for (let y = 0; y < gridH; y++){
+      const rowBase = y * gridW;
+      let runStart = -1;
+      for (let x = 0; x <= gridW; x++){
+        const isHaz = x < gridW && hazards[rowBase + x] === 1;
+        if (isHaz && runStart < 0) runStart = x;
+        else if (!isHaz && runStart >= 0){
+          hazPath.rect(runStart * GRID_SCALE, y * GRID_SCALE, (x - runStart) * GRID_SCALE, GRID_SCALE);
+          runStart = -1;
+        }
+      }
+    }
+    c.save();
+    c.shadowColor = 'rgba(255,0,0,0.4)';
+    c.shadowBlur = 8 * DPR;
+    c.fillStyle = hazardPattern;
+    c.fill(hazPath);
+    c.restore();
+
+    // separate glow layer for live pulsing (composited with varying alpha each frame)
+    hazardGlowCanvas.width = wallCanvas.width; hazardGlowCanvas.height = wallCanvas.height;
+    const hg = hazardGlowCtx;
+    hg.setTransform(DPR, 0, 0, DPR, 0, 0);
+    hg.clearRect(0, 0, width, height);
+    hg.save();
+    hg.shadowColor = 'rgba(255,50,30,0.9)';
+    hg.shadowBlur = 14;
+    hg.fillStyle = 'rgba(255,60,30,0.55)';
+    hg.fill(hazPath);
+    hg.restore();
+  }
+  wallCanvasDirty = false;
+}
+
+/* ============ AUDIO ============ */
+class AudioEngine {
+  constructor(){ this.ctx=null; this.master=null; this.ambient=null; this.enabled=false;
+    this.lastDelivery=0; this.lastBrush=0; this.lastCount=0; this.lastPickup=0; this.lastChirp=0; }
+  init(){
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.enabled ? CONFIG.volume : 0;
+      this.master.connect(this.ctx.destination);
+    } catch(e){}
+  }
+  ensure(){ if (!this.ctx) this.init(); if (this.ctx && this.ctx.state==='suspended') try{ this.ctx.resume(); }catch(e){} }
+  setEnabled(on){
+    this.enabled = on; this.ensure();
+    if (!this.master) return;
+    this.master.gain.linearRampToValueAtTime(on?CONFIG.volume:0, this.ctx.currentTime+0.15);
+    if (on && CONFIG.ambientOn) this.startAmbient(); else this.stopAmbient();
+  }
+  setVolume(v){ CONFIG.volume = v; if (this.master && this.enabled) this.master.gain.linearRampToValueAtTime(v, this.ctx.currentTime+0.1); }
+  startAmbient(){
+    if (this.ambient || !this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    const gain = c.createGain(); gain.gain.value = 0;
+    gain.connect(this.master);
+    gain.gain.linearRampToValueAtTime(0.07, t+2);
+    const filter = c.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=400; filter.Q.value=2;
+    filter.connect(gain);
+    const o1 = c.createOscillator(); o1.type='sine'; o1.frequency.value=55; o1.connect(filter); o1.start();
+    const o2 = c.createOscillator(); o2.type='sine'; o2.frequency.value=82.5; o2.connect(filter); o2.start();
+    const lfo = c.createOscillator(); lfo.type='sine'; lfo.frequency.value=0.13;
+    const lfoG = c.createGain(); lfoG.gain.value=180; lfo.connect(lfoG); lfoG.connect(filter.frequency); lfo.start();
+    this.ambient = {gain,filter,o1,o2,lfo};
+  }
+  stopAmbient(){
+    if (!this.ambient) return;
+    const a = this.ambient;
+    try {
+      a.gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime+0.4);
+      setTimeout(()=>{ try{ a.o1.stop(); a.o2.stop(); a.lfo.stop(); }catch(e){} }, 500);
+    } catch(e){}
+    this.ambient = null;
+  }
+  updateAmbient(intensity){
+    if (!this.ambient) return;
+    const t = this.ctx.currentTime;
+    this.ambient.gain.gain.linearRampToValueAtTime(0.04 + intensity*0.22, t+0.6);
+    this.ambient.filter.frequency.linearRampToValueAtTime(320 + intensity*800, t+0.6);
+  }
+  tone(freq, dur, type, vol, when){
+    if (!this.enabled || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime + (when||0);
+      const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+0.03);
+    } catch(e){}
+  }
+  sweep(f0,f1,dur,vol){
+    if (!this.enabled || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(f0,t);
+      o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(vol,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+0.02);
+    } catch(e){}
+  }
+  delivery(){
+    if (!CONFIG.eventsOn) return;
+    const now = performance.now();
+    if (now - this.lastDelivery < 55) return;
+    this.lastDelivery = now;
+    const scale = [523.25,587.33,659.25,783.99,880,1046.5];
+    const i = colony.foodCollected % scale.length;
+    this.tone(scale[i], 0.15, 'sine', 0.14);
+    this.tone(scale[i]*2, 0.09, 'sine', 0.05, 0.012);
+  }
+  pickup(){
+    if (!CONFIG.eventsOn) return;
+    const now = performance.now();
+    if (now - this.lastPickup < 120) return;
+    this.lastPickup = now;
+    this.tone(880, 0.05, 'triangle', 0.05);
+  }
+  click(){ if (!CONFIG.eventsOn) return; this.tone(1100, 0.045, 'triangle', 0.06); }
+  spawn(){ if (!CONFIG.eventsOn) return; this.tone(440, 0.09, 'sine', 0.09); this.tone(660, 0.13, 'sine', 0.07, 0.04); }
+  brushTick(){
+    if (!CONFIG.eventsOn) return;
+    const now = performance.now();
+    if (now - this.lastBrush < 85) return;
+    this.lastBrush = now;
+    this.tone(1400 + Math.random()*200, 0.03, 'triangle', 0.035);
+  }
+  countChange(){
+    if (!CONFIG.eventsOn) return;
+    const now = performance.now();
+    if (now - this.lastCount < 200) return;
+    this.lastCount = now;
+    this.tone(660 + Math.random()*80, 0.045, 'sine', 0.04);
+  }
+  milestone(){
+    if (!CONFIG.milestoneOn) return;
+    [523.25,659.25,783.99,1046.5].forEach((f,i)=>this.tone(f,0.42,'sine',0.13,i*0.09));
+    this.tone(261.63, 0.8, 'sine', 0.06, 0.1);
+  }
+  themeSweep(){ if (CONFIG.eventsOn) this.sweep(220,880,0.4,0.08); }
+  fullscreenWhoosh(){ if (CONFIG.eventsOn) this.sweep(180,720,0.35,0.07); }
+  chirp(){
+    if (!CONFIG.ambientOn || !this.enabled || !this.ctx) return;
+    const base = 1200 + Math.random()*1800;
+    const dur = 0.06 + Math.random()*0.12;
+    const v = 0.012 + Math.random()*0.014;
+    this.tone(base, dur, 'sine', v);
+    this.tone(base*1.6, dur*0.6, 'sine', v*0.6, 0.06);
+  }
+}
+const audio = new AudioEngine();
+
+function checkMilestone(){
+  if (colony.foodCollected >= nextMilestone){
+    audio.milestone();
+    nextMilestone += colony.foodCollected >= 1000 ? 500 : 100;
+  }
+}
+
+/* ============ SMART ANT UPDATE ============ */
+function updateAnts(){
+  const baseSpeed = CONFIG.antSpeed, baseTurn = CONFIG.turnSpeed, baseWander = CONFIG.wanderStrength;
+  const sd = CONFIG.sensorDist, cosS = SENSOR_COS, sinS = SENSOR_SIN;
+  const iS = invScale, gw = gridW, gh = gridH;
+  const wl = walls, hz = hazards, hp = homePheromone, fp = foodPheromone;
+  const w = width, h = height;
+
+  for (let i = 0; i < antCount; i++){
+    let energy = antPheroEnergy[i] * 0.9975;
+    if (energy < 0.08) energy = 0.08;
+    antPheroEnergy[i] = energy;
+
+    const type = antType[i];
+    const x = antX[i], y = antY[i];
+    let cosA = antCos[i], sinA = antSin[i];
+    let angle = antAngle[i];
+    const speed = baseSpeed * ANT_SPEED_MUL[type];
+
+    // 1. LOOK-AHEAD WALL AVOIDANCE (Treat hazards as walls)
+    const lookDist = Math.max(6, speed * 3);
+    const aheadX = x + cosA * lookDist, aheadY = y + sinA * lookDist;
+    const agx = (aheadX * iS) | 0, agy = (aheadY * iS) | 0;
+    let wallAhead = false;
+    if (agx < 0 || agx >= gw || agy < 0 || agy >= gh) wallAhead = true;
+    else {
+      const idx = agy * gw + agx;
+      if (wl[idx] === 1 || hz[idx] === 1) wallAhead = true;
+    }
+
+    if (wallAhead){
+      let bestAngle = angle, bestDist = -1;
+      const step = Math.PI / 6;
+      for (let k = 1; k <= 6; k++){
+        for (let sgn = -1; sgn <= 1; sgn += 2){
+          const testA = angle + sgn * k * step;
+          const tc = Math.cos(testA), ts = Math.sin(testA);
+          let clearDist = 0;
+          for (let j = 1; j <= 4; j++){
+            const px = x + tc * speed * j * 2, py = y + ts * speed * j * 2;
+            const pgx = (px * iS) | 0, pgy = (py * iS) | 0;
+            if (pgx < 0 || pgx >= gw || pgy < 0 || pgy >= gh) break;
+            const pidx = pgy * gw + pgx;
+            if (wl[pidx] === 1 || hz[pidx] === 1) break;
+            clearDist = j;
+          }
+          if (clearDist > bestDist){ bestDist = clearDist; bestAngle = testA; }
+        }
+        if (bestDist >= 4) break;
+      }
+      angle = bestAngle;
+      cosA = Math.cos(angle); sinA = Math.sin(angle);
+    }
+
+    // 2. PHEROMONE SENSING
+    const hasFood = antHasFood[i];
+    const field = hasFood ? hp : fp;
+
+    let sx = x + cosA * sd, sy = y + sinA * sd;
+    let gx = (sx * iS) | 0, gy = (sy * iS) | 0, idx = gy * gw + gx;
+    const senseF = (sx>=0 && sy>=0 && gx>=0 && gx<gw && gy>=0 && gy<gh && wl[idx]!==1 && hz[idx]!==1) ? field[idx] : -1;
+
+    const lc = cosA * cosS + sinA * sinS, ls = sinA * cosS - cosA * sinS;
+    sx = x + lc * sd; sy = y + ls * sd;
+    gx = (sx * iS) | 0; gy = (sy * iS) | 0; idx = gy * gw + gx;
+    const senseL = (sx>=0 && sy>=0 && gx>=0 && gx<gw && gy>=0 && gy<gh && wl[idx]!==1 && hz[idx]!==1) ? field[idx] : -1;
+
+    const rc = cosA * cosS - sinA * sinS, rs = sinA * cosS + cosA * sinS;
+    sx = x + rc * sd; sy = y + rs * sd;
+    gx = (sx * iS) | 0; gy = (sy * iS) | 0; idx = gy * gw + gx;
+    const senseR = (sx>=0 && sy>=0 && gx>=0 && gx<gw && gy>=0 && gy<gh && wl[idx]!==1 && hz[idx]!==1) ? field[idx] : -1;
+
+    if (senseF > senseL && senseF > senseR){ /* straight */ }
+    else if (senseF < senseL && senseF < senseR) angle += (Math.random()-0.5)*2*baseTurn;
+    else if (senseL > senseR) angle -= baseTurn;
+    else if (senseR > senseL) angle += baseTurn;
+
+    angle += (Math.random()-0.5) * baseWander * ANT_WANDER_MUL[type];
+
+    if (!hasFood){
+      for (let k = 0, n = foodSources.length; k < n; k++){
+        const f = foodSources[k];
+        const dx = f.x - x, dy = f.y - y;
+        const r = f.radius + sd * 1.4;
+        if (dx*dx + dy*dy < r*r){ angle = Math.atan2(dy, dx); break; }
+      }
+    } else {
+      const dx = colony.x - x, dy = colony.y - y;
+      const r = colony.radius + sd * 1.6;
+      if (dx*dx + dy*dy < r*r) angle = Math.atan2(dy, dx);
+    }
+
+    // 3. MOVE
+    const nc = Math.cos(angle), ns = Math.sin(angle);
+    const nx = x + nc * speed, ny = y + ns * speed;
+    const ngx = (nx * iS) | 0, ngy = (ny * iS) | 0;
+
+    let bounced = false;
+    if (nx < 4 || nx >= w-4 || ny < 4 || ny >= h-4 ||
+        (ngx>=0 && ngx<gw && ngy>=0 && ngy<gh && (wl[ngy*gw+ngx]===1 || hz[ngy*gw+ngx]===1))){
+      angle += (Math.random()-0.5) * 1.2;
+      bounced = true;
+    } else {
+      antX[i] = nx; antY[i] = ny;
+    }
+    if (bounced){ cosA = Math.cos(angle); sinA = Math.sin(angle); }
+    else { cosA = nc; sinA = ns; }
+    antAngle[i] = angle; antCos[i] = cosA; antSin[i] = sinA;
+
+    // 4. EJECT IF STUCK INSIDE WALL
+    const cgx = (antX[i] * iS) | 0, cgy = (antY[i] * iS) | 0;
+    if (cgx >= 0 && cgx < gw && cgy >= 0 && cgy < gh && (wl[cgy*gw+cgx] === 1 || hz[cgy*gw+cgx] === 1)){
+      let ejected = false;
+      for (let r = 1; r <= 12 && !ejected; r++){
+        for (let dy = -r; dy <= r && !ejected; dy++){
+          for (let dx = -r; dx <= r && !ejected; dx++){
+            if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+            const ex = cgx + dx, ey = cgy + dy;
+            if (ex < 1 || ex >= gw-1 || ey < 1 || ey >= gh-1) continue;
+            if (wl[ey*gw+ex] === 0 && hz[ey*gw+ex] === 0){
+              antX[i] = (ex + 0.5) * GRID_SCALE;
+              antY[i] = (ey + 0.5) * GRID_SCALE;
+              ejected = true;
+            }
+          }
+        }
+      }
+      if (!ejected){
+        antX[i] = colony.x + (Math.random()-0.5)*colony.radius;
+        antY[i] = colony.y + (Math.random()-0.5)*colony.radius;
+      }
+      antHasFood[i] = 0;
+      const a2 = Math.random()*Math.PI*2;
+      antAngle[i] = a2; antCos[i] = Math.cos(a2); antSin[i] = Math.sin(a2);
+      continue;
+    }
+
+    // 5. DEPOSIT PHEROMONE
+    if (cgx >= 0 && cgx < gw && cgy >= 0 && cgy < gh){
+      const pIdx = cgy*gw + cgx;
+      const followStrength = senseF > senseL ? (senseF > senseR ? senseF : senseR) : (senseL > senseR ? senseL : senseR);
+      const deposit = (0.4 + (followStrength > 0 ? followStrength : 0)*0.6) * energy * ANT_PHERO_MUL[type];
+      const chIdx = (cgy >> CHUNK_LOG) * chunkW + (cgx >> CHUNK_LOG);
+      if (hasFood){
+        const v = fp[pIdx] + deposit, fv = v > 1 ? 1 : v;
+        fp[pIdx] = fv;
+        if (fv > chunkMaxF[chIdx]) chunkMaxF[chIdx] = fv;
+      } else {
+        const v = hp[pIdx] + deposit, hv = v > 1 ? 1 : v;
+        hp[pIdx] = hv;
+        if (hv > chunkMaxH[chIdx]) chunkMaxH[chIdx] = hv;
+      }
+      chunkDirty[chIdx] = 1;
+    }
+
+    // 6. PICKUP / DELIVERY
+    if (!hasFood){
+      for (let k = foodSources.length - 1; k >= 0; k--){
+        const f = foodSources[k];
+        const dx = f.x - antX[i], dy = f.y - antY[i];
+        if (dx*dx + dy*dy <= f.radius*f.radius){
+          antHasFood[i] = 1; antPheroEnergy[i] = 1.0;
+          antAngle[i] += Math.PI; antCos[i] = -antCos[i]; antSin[i] = -antSin[i];
+          f.amount--; f.radius = Math.max(6, Math.sqrt(f.amount)*1.45);
+          audio.pickup();
+          if (f.amount <= 0){
+            burstParticles(f.x, f.y, 12, THEMES[currentTheme].foods[f.colorIndex]);
+            foodSources.splice(k, 1);
+          }
+          break;
+        }
+      }
+    } else {
+      const dx = colony.x - antX[i], dy = colony.y - antY[i];
+      const r = colony.radius + 4;
+      if (dx*dx + dy*dy <= r*r){
+        antHasFood[i] = 0; antPheroEnergy[i] = 1.0;
+        antAngle[i] += Math.PI; antCos[i] = -antCos[i]; antSin[i] = -antSin[i];
+        colony.foodCollected++; colony.pulse = 1.0;
+        burstParticles(antX[i], antY[i], 3, THEMES[currentTheme].antCarrier);
+        audio.delivery(); checkMilestone();
+      }
+    }
+  }
+}
+
+/* ============ DIFFUSION ============ */
+function updateDiffusion(){
+  const evap = CONFIG.evaporation, d = CONFIG.diffusion;
+  const centerW = 1 - d, neighW = d * 0.25;
+  const w = gridW, h = gridH;
+  const hp = homePheromone, fp = foodPheromone, nh = nextHome, nf = nextFood, wl = walls, hz = hazards;
+
+  for (let x = 0; x < w; x++){
+    const t = x, b = (h-1)*w + x;
+    nh[t] = hp[t]*evap; nf[t] = fp[t]*evap;
+    nh[b] = hp[b]*evap; nf[b] = fp[b]*evap;
+  }
+  for (let y = 1; y < h-1; y++){
+    const l = y*w, r = y*w + w - 1;
+    nh[l] = hp[l]*evap; nf[l] = fp[l]*evap;
+    nh[r] = hp[r]*evap; nf[r] = fp[r]*evap;
+  }
+
+  const cw = chunkW, ch = chunkH;
+  for (let cy = 0; cy < ch; cy++){
+    for (let cx = 0; cx < cw; cx++){
+      const chunkIdx = cy * cw + cx;
+      const mh = chunkMaxH[chunkIdx], mf = chunkMaxF[chunkIdx];
+      let cold = (mh < COLD_THRESHOLD && mf < COLD_THRESHOLD);
+      if (cold){
+        if (cy > 0){ const k = chunkIdx - cw; if (chunkMaxH[k] >= COLD_THRESHOLD || chunkMaxF[k] >= COLD_THRESHOLD) cold = false; }
+        if (cold && cy < ch-1){ const k = chunkIdx + cw; if (chunkMaxH[k] >= COLD_THRESHOLD || chunkMaxF[k] >= COLD_THRESHOLD) cold = false; }
+        if (cold && cx > 0){ const k = chunkIdx - 1; if (chunkMaxH[k] >= COLD_THRESHOLD || chunkMaxF[k] >= COLD_THRESHOLD) cold = false; }
+        if (cold && cx < cw-1){ const k = chunkIdx + 1; if (chunkMaxH[k] >= COLD_THRESHOLD || chunkMaxF[k] >= COLD_THRESHOLD) cold = false; }
+      }
+      if (cold){
+        if (mh > 0 || mf > 0){
+          const x0 = cx * CHUNK_SIZE, y0 = cy * CHUNK_SIZE;
+          const x1 = x0 + CHUNK_SIZE > w ? w : x0 + CHUNK_SIZE, y1 = y0 + CHUNK_SIZE > h ? h : y0 + CHUNK_SIZE;
+          for (let y = y0 < 1 ? 1 : y0; y < y1 && y < h-1; y++){
+            const row = y * w;
+            for (let x = x0 < 1 ? 1 : x0; x < x1 && x < w-1; x++){ nh[row + x] = 0; nf[row + x] = 0; }
+          }
+          chunkDirty[chunkIdx] = 1;
+        }
+        chunkMaxH[chunkIdx] = 0; chunkMaxF[chunkIdx] = 0;
+        continue;
+      }
+      const x0 = cx * CHUNK_SIZE, y0 = cy * CHUNK_SIZE;
+      const x1 = x0 + CHUNK_SIZE > w ? w : x0 + CHUNK_SIZE, y1 = y0 + CHUNK_SIZE > h ? h : y0 + CHUNK_SIZE;
+      const ys = y0 < 1 ? 1 : y0, ye = y1 > h-1 ? h-1 : y1;
+      const xs = x0 < 1 ? 1 : x0, xe = x1 > w-1 ? w-1 : x1;
+      let peakH = 0, peakF = 0;
+      for (let y = ys; y < ye; y++){
+        const row = y * w, rowUp = row - w, rowDn = row + w;
+        for (let x = xs; x < xe; x++){
+          const i = row + x;
+          if (wl[i] === 1 || hz[i] === 1){ nh[i]=0; nf[i]=0; hp[i]=0; fp[i]=0; continue; }
+          const hC = hp[i], fC = fp[i];
+          const hN = hp[i-1]+hp[i+1]+hp[rowUp+x]+hp[rowDn+x];
+          const fN = fp[i-1]+fp[i+1]+fp[rowUp+x]+fp[rowDn+x];
+          const nHv = (hC*centerW + hN*neighW)*evap, nFv = (fC*centerW + fN*neighW)*evap;
+          nh[i] = nHv; nf[i] = nFv;
+          if (nHv > peakH) peakH = nHv; if (nFv > peakF) peakF = nFv;
+        }
+      }
+      chunkMaxH[chunkIdx] = peakH; chunkMaxF[chunkIdx] = peakF;
+      if (peakH > 0 || peakF > 0) chunkDirty[chunkIdx] = 1;
+    }
+  }
+  let t = homePheromone; homePheromone = nextHome; nextHome = t;
+  t = foodPheromone; foodPheromone = nextFood; nextFood = t;
+}
+
+/* ============ INIT ============ */
+function resizeCanvas(){
+  width = window.innerWidth; height = window.innerHeight;
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.floor(width * DPR); canvas.height = Math.floor(height * DPR);
+  canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+  const diag = Math.hypot(width, height);
+  GRID_SCALE = diag < 800 ? 3 : diag < 1400 ? 4 : diag < 2200 ? 5 : 6;
+  invScale = 1/GRID_SCALE;
+  gridW = Math.ceil(width/GRID_SCALE); gridH = Math.ceil(height/GRID_SCALE);
+  gridCanvas.width = gridW; gridCanvas.height = gridH;
+  chunkW = Math.ceil(gridW / CHUNK_SIZE); chunkH = Math.ceil(gridH / CHUNK_SIZE);
+  terrainCanvas.width = canvas.width; terrainCanvas.height = canvas.height;
+  wallCanvas.width = canvas.width; wallCanvas.height = canvas.height;
+}
+
+function initSimulation(resetAll){
+  resizeCanvas();
+  const n = gridW * gridH;
+  homePheromone = new Float32Array(n); foodPheromone = new Float32Array(n);
+  nextHome = new Float32Array(n); nextFood = new Float32Array(n);
+  walls = new Uint8Array(n); hazards = new Uint8Array(n);
+  chunkMaxH = new Float32Array(chunkW * chunkH); chunkMaxF = new Float32Array(chunkW * chunkH);
+  chunkDirty = new Uint8Array(chunkW * chunkH);
+  chunkDirty.fill(1);
+  gridImageData = gridCtx.createImageData(gridW, gridH);
+  gridPixels = gridImageData.data;
+  for (let i = 0; i < n; i++) gridPixels[i*4+3] = 0;
+  particleCount = 0;
+
+  if (resetAll){
+    colony.x = width*0.25; colony.y = height*0.5;
+    colony.foodCollected = 0; nextMilestone = 100;
+    initAntBuffers(CONFIG.antCount);
+    foodSources = [];
+    applyPresetContent('open');
+  } else {
+    initAntBuffers(antCount || CONFIG.antCount);
+    for (let i = 0; i < antCount; i++){
+      antX[i] = Math.min(width-4, Math.max(4, antX[i]));
+      antY[i] = Math.min(height-4, Math.max(4, antY[i]));
+    }
+  }
+
+  generateTerrainCanvas();
+  wallCanvasDirty = true;
+  ctx.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+  needsRender = true;
+}
+
+function spawnFoodCluster(x, y, amount){
+  amount = amount || 350;
+  if (foodSources.length >= 40) return;
+  const margin = 40;
+  const fx = Math.max(margin, Math.min(width-margin, x));
+  const fy = Math.max(margin, Math.min(height-margin, y));
+  foodSources.push({x:fx,y:fy,amount,radius:Math.max(8,Math.sqrt(amount)*1.45),colorIndex:(Math.random()*8)|0,seed:Math.random()*Math.PI*2});
+  needsRender = true;
+}
+
+function applyPresetContent(name){
+  foodSources = [];
+  walls.fill(0); hazards.fill(0); chunkDirty.fill(1);
+  const w2 = gridW, h2 = gridH;
+  if (name === 'open'){
+    spawnFoodCluster(width*0.75,height*0.25,400); spawnFoodCluster(width*0.8,height*0.75,450);
+    spawnFoodCluster(width*0.5,height*0.15,320); spawnFoodCluster(width*0.5,height*0.85,340);
+  } else if (name === 'maze'){
+    for (let i=0;i<3;i++){
+      const y = (h2*(i+1))/4|0, gap1 = (w2*0.2)|0, gap2 = (w2*0.6)|0;
+      for (let x=4;x<w2-4;x++){ if (Math.abs(x-gap1)>3 && Math.abs(x-gap2)>3) walls[y*w2+x] = 1; }
+    }
+    spawnFoodCluster(width*0.85,height*0.15,380); spawnFoodCluster(width*0.85,height*0.85,380);
+  } else if (name === 'pillars'){
+    for (let i=0;i<7;i++){
+      const cx = width*(0.35+Math.random()*0.55), cy = height*(0.15+Math.random()*0.7);
+      const r = 28+Math.random()*22, rC = (r/GRID_SCALE)|0, rC2 = rC*rC;
+      const gcx = (cx/GRID_SCALE)|0, gcy = (cy/GRID_SCALE)|0;
+      for (let dy=-rC;dy<=rC;dy++) for (let dx=-rC;dx<=rC;dx++){
+        if (dx*dx+dy*dy > rC2) continue;
+        const gx = gcx+dx, gy = gcy+dy;
+        if (gx<2||gx>=w2-2||gy<2||gy>=h2-2) continue;
+        walls[gy*w2+gx] = 1;
+      }
+    }
+    spawnFoodCluster(width*0.85,height*0.5,400); spawnFoodCluster(width*0.75,height*0.2,320); spawnFoodCluster(width*0.75,height*0.8,320);
+  } else if (name === 'corridor'){
+    const topR = (h2*0.3)|0, botR = (h2*0.7)|0;
+    for (let x=2;x<w2-2;x++){ if (Math.abs(x - w2*0.5) > 4){ walls[topR*w2+x] = 1; walls[botR*w2+x] = 1; } }
+    spawnFoodCluster(width*0.85,height*0.5,450);
+  } else if (name === 'islands'){
+    for (let i=0;i<5;i++){
+      const cx = width*(0.35+Math.random()*0.55), cy = height*(0.15+Math.random()*0.7);
+      const r = 22+Math.random()*18, rC = (r/GRID_SCALE)|0, rC2 = rC*rC;
+      const gcx = (cx/GRID_SCALE)|0, gcy = (cy/GRID_SCALE)|0;
+      for (let dy=-rC;dy<=rC;dy++) for (let dx=-rC;dx<=rC;dx++){
+        if (dx*dx+dy*dy > rC2) continue;
+        const gx = gcx+dx, gy = gcy+dy;
+        if (gx<2||gx>=w2-2||gy<2||gy>=h2-2) continue;
+        walls[gy*w2+gx] = 1;
+      }
+      spawnFoodCluster(cx, cy-r-20, 200);
+    }
+  } else if (name === 'spiral'){
+    const ccx = w2/2, ccy = h2/2; let r = 6, angle = 0;
+    while (r < Math.min(w2,h2)*0.42){
+      const gx = (ccx + Math.cos(angle)*r)|0, gy = (ccy + Math.sin(angle)*r)|0;
+      if (gx>2 && gx<w2-2 && gy>2 && gy<h2-2) walls[gy*w2+gx] = 1;
+      angle += 0.06; r += 0.08;
+    }
+    spawnFoodCluster(width*0.85,height*0.5,400); spawnFoodCluster(width*0.6,height*0.15,260);
+  }
+  wallCanvasDirty = true;
+  needsRender = true;
+}
+
+/* ============ RENDER ============ */
+function renderGridDirty(){
+  const w = gridW, h = gridH, px = gridPixels;
+  const { hR, hG, hB, fR, fG, fB } = pheroCoef;
+  const HP = homePheromone, FP = foodPheromone, WL = walls, HZ = hazards;
+  let anyDirty = false;
+
+  for (let cy = 0; cy < chunkH; cy++){
+    for (let cx = 0; cx < chunkW; cx++){
+      const cIdx = cy * chunkW + cx;
+      if (!chunkDirty[cIdx]) continue;
+      anyDirty = true;
+      const x0 = cx * CHUNK_SIZE, y0 = cy * CHUNK_SIZE;
+      const x1 = x0 + CHUNK_SIZE > w ? w : x0 + CHUNK_SIZE, y1 = y0 + CHUNK_SIZE > h ? h : y0 + CHUNK_SIZE;
+      for (let y = y0; y < y1; y++){
+        const row = y * w;
+        for (let x = x0; x < x1; x++){
+          const i = row + x, p = i << 2;
+          if (WL[i] === 1 || HZ[i] === 1){ px[p+3] = 0; continue; }
+          const hV = HP[i], fV = FP[i];
+          const a = (hV + fV) * 220;
+          if (a < 4){ px[p+3] = 0; continue; }
+          let r = hV * hR + fV * fR; let g = hV * hG + fV * fG; let b = hV * hB + fV * fB;
+          if (r > 255) r = 255; if (g > 255) g = 255; if (b > 255) b = 255;
+          px[p] = r; px[p+1] = g; px[p+2] = b; px[p+3] = a > 255 ? 255 : a;
+        }
+      }
+      chunkDirty[cIdx] = 0;
+    }
+  }
+  if (anyDirty) gridCtx.putImageData(gridImageData, 0, 0);
+  return anyDirty;
+}
+
+function renderAnts(){
+  if (CONFIG.trailsOnly) return;
+  const theme = THEMES[currentTheme];
+  const appear = CONFIG.antAppearance;
+
+  if (appear === 'realistic' && antSpritesEmpty && antCount <= 2200){
+    const TAU = Math.PI*2, steps = ANT_ANGLE_STEPS, sot = steps / TAU;
+    const gaitBase = animTick >> 1; // gait speed: swaps every 2 sim steps
+    for (let i = 0; i < antCount; i++){
+      const type = antType[i], size = ANT_SIZES[type];
+      let norm = antAngle[i] % TAU; if (norm < 0) norm += TAU;
+      let ai = (norm * sot) | 0; if (ai >= steps) ai = steps - 1;
+      const ph = GAIT_SEQ[(gaitBase + (i & 7)) & 3]; // desynced tripod gait
+      const sprite = antHasFood[i] ? antSpritesFood[type][ph][ai] : antSpritesEmpty[type][ph][ai];
+      ctx.drawImage(sprite, antX[i]-size*0.5, antY[i]-size*0.5, size, size);
+    }
+    return;
+  }
+
+  if (appear === 'streaks'){
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.55; ctx.strokeStyle = theme.antWorker; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    for (let i = 0; i < antCount; i++){
+      if (antHasFood[i]) continue;
+      ctx.moveTo(antX[i], antY[i]); ctx.lineTo(antX[i]-antCos[i]*12, antY[i]-antSin[i]*12);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 0.7; ctx.strokeStyle = theme.accent; ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    for (let i = 0; i < antCount; i++){
+      if (!antHasFood[i]) continue;
+      ctx.moveTo(antX[i], antY[i]); ctx.lineTo(antX[i]-antCos[i]*14, antY[i]-antSin[i]*14);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 0.9; ctx.fillStyle = theme.antWorker;
+    for (let i = 0; i < antCount; i++){ if (antHasFood[i]) continue; ctx.fillRect(antX[i]-1.2, antY[i]-1.2, 2.4, 2.4); }
+    ctx.fillStyle = theme.accent;
+    for (let i = 0; i < antCount; i++){ if (!antHasFood[i]) continue; ctx.fillRect(antX[i]-1.4, antY[i]-1.4, 2.8, 2.8); }
+    ctx.globalAlpha = 1; return;
+  }
+
+  if (appear === 'dots' || antCount > 2200){
+    ctx.fillStyle = theme.antWorker;
+    for (let i = 0; i < antCount; i++){ if (antHasFood[i]) continue; ctx.fillRect(antX[i]-1, antY[i]-1, 2, 2); }
+    ctx.fillStyle = theme.accent;
+    for (let i = 0; i < antCount; i++){ if (!antHasFood[i]) continue; ctx.fillRect(antX[i]-1, antY[i]-1, 2, 2); }
+    return;
+  }
+
+  ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.strokeStyle = theme.antWorker;
+  ctx.beginPath();
+  for (let i = 0; i < antCount; i++){
+    if (antHasFood[i]) continue;
+    const dx = antCos[i]*2.6, dy = antSin[i]*2.6;
+    ctx.moveTo(antX[i]-dx, antY[i]-dy); ctx.lineTo(antX[i]+dx, antY[i]+dy);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = theme.accent;
+  ctx.beginPath();
+  for (let i = 0; i < antCount; i++){
+    if (!antHasFood[i]) continue;
+    const dx = antCos[i]*3, dy = antSin[i]*3;
+    ctx.moveTo(antX[i]-dx, antY[i]-dy); ctx.lineTo(antX[i]+dx, antY[i]+dy);
+  }
+  ctx.stroke();
+}
+
+function renderEntities(){
+  const theme = THEMES[currentTheme];
+
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < foodSources.length; i++){
+    const f = foodSources[i];
+    const sprite = foodSprites[f.colorIndex];
+    if (!sprite) continue;
+    const size = f.radius * 4.5;
+    ctx.drawImage(sprite, f.x-size*0.5, f.y-size*0.5, size, size);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  for (let i = 0; i < foodSources.length; i++){
+    const f = foodSources[i];
+    const col = theme.foods[f.colorIndex];
+    const seed = f.seed || 0;
+    // satellite crumbs — deterministic ring of seeds around the pile
+    ctx.fillStyle = col;
+    ctx.globalAlpha = 0.65;
+    for (let k = 0; k < 6; k++){
+      const a = seed + k * 1.047 + Math.sin(seed + k*2.7)*0.4;
+      const d = f.radius * (0.78 + 0.22*Math.sin(seed*3 + k*1.9));
+      const r2 = Math.max(1.2, f.radius * (0.14 + 0.08*Math.cos(seed + k)));
+      ctx.beginPath(); ctx.arc(f.x + Math.cos(a)*d, f.y + Math.sin(a)*d, r2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    // main pile with depth shading
+    const fg = ctx.createRadialGradient(f.x - f.radius*0.22, f.y - f.radius*0.25, f.radius*0.1, f.x, f.y, f.radius*0.75);
+    fg.addColorStop(0, '#ffffff');
+    fg.addColorStop(0.32, col);
+    fg.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.arc(f.x, f.y, f.radius*0.7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath(); ctx.arc(f.x - f.radius*0.18, f.y - f.radius*0.2, f.radius*0.2, 0, Math.PI*2); ctx.fill();
+    if (f.radius > 11){
+      ctx.fillStyle = 'rgba(0,0,0,0.88)';
+      ctx.font = 'bold 11px Tahoma,monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(f.amount, f.x, f.y);
+    }
+  }
+
+  if (particleCount > 0){
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < particleCount; i++){
+      ctx.globalAlpha = pLife[i] * 0.85;
+      ctx.fillStyle = pColor[i];
+      ctx.beginPath(); ctx.arc(pX[i], pY[i], pSize[i]*pLife[i], 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  renderAnts();
+
+  // nest: ambient glow + realistic terrain-tinted mound
+  const nestR = colony.radius + colony.pulse*6;
+  const nestSize = nestR * 4.8;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.45 + colony.pulse*0.4;
+  ctx.drawImage(nestSprite, colony.x-nestSize*0.5, colony.y-nestSize*0.5, nestSize, nestSize);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  if (!nestMoundSprite) nestMoundSprite = buildNestMound();
+  const mSize = colony.radius*2.8 + colony.pulse*5;
+  ctx.drawImage(nestMoundSprite, colony.x-mSize*0.5, colony.y-mSize*0.5, mSize, mSize);
+  if (colony.pulse > 0.02){
+    ctx.globalAlpha = colony.pulse * 0.7;
+    ctx.strokeStyle = theme.primary; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(colony.x, colony.y, colony.radius + (1-colony.pulse)*55, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalAlpha = 0.8;
+  ctx.strokeStyle = theme.primary; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(colony.x, colony.y, colony.radius, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.font = 'bold 11px Tahoma,sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const lblY = colony.y + colony.radius + 15;
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillText(t('nestLabel'), colony.x + 1, lblY + 1);
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.fillText(t('nestLabel'), colony.x, lblY);
+}
+
+function renderFrame(){
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.drawImage(terrainCanvas, 0, 0, width, height);
+  renderGridDirty();
+  ctx.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+  ctx.globalCompositeOperation = 'screen';
+  ctx.drawImage(gridCanvas, 0, 0, width, height);
+  ctx.globalCompositeOperation = 'source-over';
+  if (wallCanvasDirty) rebuildWallCanvas();
+  ctx.drawImage(wallCanvas, 0, 0, width, height);
+  if (hazardCellsPresent){
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.28 + 0.2 * Math.sin(performance.now() * 0.0045);
+    ctx.drawImage(hazardGlowCanvas, 0, 0, width, height);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  renderEntities();
+}
+
+/* ============ LOOP ============ */
+const STEP_MS = 1000/60;
+const GAIT_SEQ = [0,1,0,2]; // neutral → A-forward → neutral → B-forward
+let animTick = 0;
+let lastTime = performance.now(), accumulator = 0, needsRender = true;
+let frameCount = 0, fpsTime = performance.now(), currentFps = 60, statsTime = 0;
+
+function loop(now){
+  requestAnimationFrame(loop);
+  frameCount++;
+  if (now - fpsTime >= 500){
+    currentFps = Math.min(120, Math.round((frameCount*1000)/(now-fpsTime)));
+    frameCount = 0; fpsTime = now;
+  }
+  let delta = now - lastTime;
+  lastTime = now;
+  if (delta > 100) delta = 100;
+
+  if (!CONFIG.paused){
+    accumulator += delta * CONFIG.timeScale;
+    let steps = 0;
+    while (accumulator >= STEP_MS && steps < 3){
+      updateAnts(); updateDiffusion(); updateParticles(STEP_MS/1000);
+      animTick++;
+      colony.pulse = Math.max(0, colony.pulse - 0.04);
+      if (foodSources.length === 0){
+        spawnFoodCluster(width*(0.15+Math.random()*0.7), height*(0.15+Math.random()*0.7), 350);
+      }
+      accumulator -= STEP_MS; steps++;
+    }
+    if (steps > 0) needsRender = true;
+    if (steps === 3 && accumulator > STEP_MS) accumulator = 0;
+  }
+
+  if (needsRender){ renderFrame(); needsRender = false; }
+
+  if (now - statsTime > 260){
+    statsTime = now;
+    document.getElementById('fps-val').textContent = currentFps;
+    document.getElementById('mini-fps').textContent = currentFps;
+    document.getElementById('score-val').textContent = colony.foodCollected;
+    document.getElementById('mini-score').textContent = colony.foodCollected;
+    document.getElementById('food-nodes-val').textContent = foodSources.length;
+    document.getElementById('ant-count-val').textContent = antCount;
+    document.getElementById('mini-ants').textContent = antCount;
+  }
+
+  if (audio.enabled && CONFIG.ambientOn){
+    if (now - audio.lastChirp > 4000 + Math.random()*4000){
+      audio.lastChirp = now;
+      audio.chirp();
+    }
+  }
+}
+
+/* ============ INPUT ============ */
+let isPointerDown = false, lastGx = -1, lastGy = -1;
+
+const BRUSH_MIN = 1, BRUSH_MAX = 10;
+function clampBrush(v){
+  v = Math.round(+v || BRUSH_MIN);
+  return v < BRUSH_MIN ? BRUSH_MIN : (v > BRUSH_MAX ? BRUSH_MAX : v);
+}
+/* brush radius in CSS pixels — device independent (size 1 ≈ 5px … size 10 ≈ 30px) */
+function brushRadiusPx(){ return 2.2 + clampBrush(CONFIG.brushSize) * 2.8; }
+
+function stamp(cx, cy){
+  const R = Math.max(1, Math.round(brushRadiusPx() * invScale)), R2 = R*R;
+  const brush = CONFIG.brushMode;
+  let wallTouched = false;
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++){
+    if (dx*dx + dy*dy > R2) continue;
+    const gx = cx+dx, gy = cy+dy;
+    if (gx<2 || gx>=gridW-2 || gy<2 || gy>=gridH-2) continue;
+    const idx = gy*gridW + gx;
+    const ndx = gx*GRID_SCALE - colony.x, ndy = gy*GRID_SCALE - colony.y;
+    const nearNest = ndx*ndx + ndy*ndy < (colony.radius+18)*(colony.radius+18);
+    if (brush === 'wall'){ if (!nearNest && walls[idx]!==1){ walls[idx]=1; hazards[idx]=0; wallTouched = true; } }
+    else if (brush === 'hazard'){ if (!nearNest && hazards[idx]!==1){ hazards[idx]=1; walls[idx]=0; wallTouched = true; } }
+    else if (brush === 'erase'){ if (walls[idx] || hazards[idx]){ walls[idx]=0; hazards[idx]=0; wallTouched = true; } homePheromone[idx]=0; foodPheromone[idx]=0; }
+    const cx2 = gx >> CHUNK_LOG, cy2 = gy >> CHUNK_LOG;
+    chunkDirty[cy2 * chunkW + cx2] = 1;
+  }
+  if (wallTouched) wallCanvasDirty = true;
+  needsRender = true;
+}
+
+function lineGrid(x0,y0,x1,y1){
+  const dx = Math.abs(x1-x0), dy = Math.abs(y1-y0);
+  const sx = x0<x1?1:-1, sy = y0<y1?1:-1;
+  let err = dx - dy, guard = 0;
+  while (guard++ < 3000){
+    stamp(x0,y0);
+    if (x0===x1 && y0===y1) break;
+    const e2 = 2*err;
+    if (e2 > -dy){ err -= dy; x0 += sx; }
+    if (e2 < dx){ err += dx; y0 += sy; }
+  }
+}
+
+function pointerStart(cx,cy){
+  audio.ensure();
+  if (CONFIG.brushMode === 'food'){
+    spawnFoodCluster(cx,cy,380);
+    audio.spawn();
+    if (navigator.vibrate) navigator.vibrate(6);
+    return;
+  }
+  lastGx = (cx*invScale)|0; lastGy = (cy*invScale)|0;
+  stamp(lastGx, lastGy); audio.brushTick();
+}
+function pointerMove(cx,cy){
+  if (CONFIG.brushMode === 'food') return;
+  const gx = (cx*invScale)|0, gy = (cy*invScale)|0;
+  if (lastGx >= 0) lineGrid(lastGx,lastGy,gx,gy);
+  else stamp(gx,gy);
+  lastGx = gx; lastGy = gy; audio.brushTick();
+}
+function pointerEnd(){ lastGx = -1; lastGy = -1; }
+
+/* ============ BRUSH CURSOR PREVIEW ============ */
+const brushCursor = document.getElementById('brush-cursor');
+let cursorFadeTO = null;
+function refreshBrushCursorSize(){
+  const mode = CONFIG.brushMode;
+  const r = mode === 'food' ? 28 : brushRadiusPx();
+  const d = Math.max(12, r * 2);
+  brushCursor.style.width = d + 'px';
+  brushCursor.style.height = d + 'px';
+  brushCursor.classList.remove('mode-food','mode-wall','mode-erase','mode-hazard');
+  brushCursor.classList.add('mode-' + mode);
+}
+function showBrushCursor(x, y, sticky){
+  refreshBrushCursorSize();
+  brushCursor.style.left = x + 'px';
+  brushCursor.style.top = y + 'px';
+  brushCursor.classList.add('visible');
+  clearTimeout(cursorFadeTO);
+  if (!sticky) cursorFadeTO = setTimeout(()=>brushCursor.classList.remove('visible'), 850);
+}
+function hideBrushCursor(){ clearTimeout(cursorFadeTO); brushCursor.classList.remove('visible'); }
+
+canvas.addEventListener('pointerdown', (e)=>{
+  e.preventDefault(); isPointerDown = true;
+  if (canvas.setPointerCapture) try{ canvas.setPointerCapture(e.pointerId); }catch(er){}
+  showBrushCursor(e.clientX, e.clientY, e.pointerType === 'mouse');
+  pointerStart(e.clientX, e.clientY);
+}, {passive:false});
+canvas.addEventListener('pointermove', (e)=>{
+  if (isPointerDown){
+    showBrushCursor(e.clientX, e.clientY, e.pointerType === 'mouse');
+    pointerMove(e.clientX, e.clientY);
+  } else if (e.pointerType === 'mouse'){
+    showBrushCursor(e.clientX, e.clientY, true);
+  }
+}, {passive:true});
+canvas.addEventListener('pointerleave', hideBrushCursor);
+canvas.addEventListener('pointerup', (e)=>{ isPointerDown = false; pointerEnd(); if (e.pointerType !== 'mouse') showBrushCursor(e.clientX, e.clientY, false); });
+canvas.addEventListener('pointercancel', ()=>{ isPointerDown = false; pointerEnd(); hideBrushCursor(); });
+
+/* ============ THEME ============ */
+function applyTheme(name){
+  const th = THEMES[name]; if (!th) return;
+  currentTheme = name;
+  const rs = document.documentElement.style;
+  rs.setProperty('--bg', th.bg); rs.setProperty('--primary', th.primary);
+  rs.setProperty('--secondary', th.secondary); rs.setProperty('--accent', th.accent);
+  rs.setProperty('--danger', th.danger); rs.setProperty('--purple', th.purple);
+  const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', th.bg);
+  pheroCoef.hR = th.homeRGB[0]; pheroCoef.hG = th.homeRGB[1]; pheroCoef.hB = th.homeRGB[2];
+  pheroCoef.fR = th.foodRGB[0]; pheroCoef.fG = th.foodRGB[1]; pheroCoef.fB = th.foodRGB[2];
+  const lgH = document.getElementById('lg-home'), lgF = document.getElementById('lg-food'), lgC = document.getElementById('lg-carrier');
+  lgH.style.background = th.primary; lgH.style.boxShadow = `0 0 8px ${th.primary}`;
+  lgF.style.background = th.secondary; lgF.style.boxShadow = `0 0 8px ${th.secondary}`;
+  lgC.style.background = th.antCarrier; lgC.style.boxShadow = `0 0 8px ${th.antCarrier}`;
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.theme === name));
+  rebuildFoodSprites();
+  rebuildAntSprites();
+  if (typeof chunkDirty !== 'undefined') chunkDirty.fill(1);
+  needsRender = true;
+}
+
+/* ============ TERRAIN ============ */
+function applyTerrain(name){
+  if (!TERRAINS[name]) return;
+  currentTerrain = name;
+  generateTerrainCanvas();
+  wallPattern = null;
+  nestMoundSprite = buildNestMound();
+  wallCanvasDirty = true;
+  document.querySelectorAll('.terrain-card').forEach(c => c.classList.toggle('active', c.dataset.terrain === name));
+  needsRender = true;
+}
+
+/* ============ TOAST ============ */
+function showToast(text, ms){
+  ms = ms || 1800;
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = text;
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),350); }, ms);
+}
+
+/* ============ FULLSCREEN ============ */
+const btnFS = document.getElementById('btn-fullscreen');
+function isFullscreen(){ return !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement); }
+function updateFullscreenBtn(){
+  const on = isFullscreen();
+  btnFS.classList.toggle('on', on);
+  btnFS.textContent = on ? '⛌' : '⛶';
+}
+function toggleFullscreen(){
+  audio.ensure();
+  if (isFullscreen()){
+    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+    if (exit){ try{ const p = exit.call(document); if (p && p.catch) p.catch(()=>{}); }catch(e){} }
+    audio.fullscreenWhoosh();
+  } else {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (req){ try{ const p = req.call(el); if (p && p.catch) p.catch(()=>showToast(t('toastFSUnsupported'))); audio.fullscreenWhoosh(); }catch(e){ showToast(t('toastFSUnsupported')); } }
+    else showToast(t('toastFSUnsupported'));
+  }
+}
+btnFS.addEventListener('click', toggleFullscreen);
+['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(ev => {
+  document.addEventListener(ev, ()=>{ updateFullscreenBtn(); setTimeout(()=>initSimulation(false), 80); });
+});
+updateFullscreenBtn();
+
+/* ============ UI ============ */
+const panel = document.getElementById('bottom-panel');
+const fab = document.getElementById('main-fab');
+const legend = document.getElementById('legend');
+
+function setPanelExpanded(expand){
+  if (window.innerWidth >= 768) {
+    panel.classList.toggle('collapsed-desktop', !expand);
+    if (expand) {
+      panel.classList.remove('collapsed-desktop');
+      document.getElementById('panel-full').style.display = 'block';
+    } else {
+      panel.classList.add('collapsed-desktop');
+      document.getElementById('panel-full').style.display = 'none';
+    }
+  } else {
+    if (expand){ panel.classList.add('expanded'); fab.classList.add('open'); legend.classList.add('hidden'); }
+    else { panel.classList.remove('expanded'); fab.classList.remove('open'); legend.classList.remove('hidden'); }
+  }
+  needsRender = true;
+}
+
+fab.addEventListener('click', ()=>{
+  if (window.innerWidth >= 768) return;
+  setPanelExpanded(!panel.classList.contains('expanded'));
+  audio.ensure(); audio.click();
+  if (navigator.vibrate) navigator.vibrate(6);
+});
+
+document.getElementById('desktop-close-btn').addEventListener('click', () => {
+  setPanelExpanded(false);
+  audio.click();
+});
+
+// Handle desktop mini click to expand
+document.getElementById('panel-mini').addEventListener('click', () => {
+  if (window.innerWidth >= 768) {
+    setPanelExpanded(true);
+  }
+});
+
+(function(){
+  const handle = document.getElementById('panel-handle');
+  let startY = 0, startExpanded = false, dragging = false;
+  handle.addEventListener('pointerdown', (e)=>{
+    if (window.innerWidth >= 768) return;
+    startY = e.clientY; startExpanded = panel.classList.contains('expanded'); dragging = true;
+  });
+  handle.addEventListener('pointermove', (e)=>{
+    if (!dragging || window.innerWidth >= 768) return;
+    const dy = e.clientY - startY;
+    if (!startExpanded && dy < -28){ setPanelExpanded(true); dragging = false; }
+    else if (startExpanded && dy > 28){ setPanelExpanded(false); dragging = false; }
+  });
+  window.addEventListener('pointerup', ()=>{ dragging = false; });
+  handle.addEventListener('click', (e)=>{
+    if (window.innerWidth >= 768) return;
+    if (Math.abs(e.clientY - startY) < 6){ setPanelExpanded(!panel.classList.contains('expanded')); audio.click(); }
+  });
+})();
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    const pane = document.querySelector(`.tab-pane[data-pane="${btn.dataset.tab}"]`);
+    if (pane) pane.classList.add('active');
+    audio.click();
+  });
+});
+
+document.querySelectorAll('.brush-btn').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.brush-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    CONFIG.brushMode = btn.dataset.brush;
+    if (typeof refreshBrushCursorSize === 'function') refreshBrushCursorSize();
+    audio.click();
+    if (navigator.vibrate) navigator.vibrate(5);
+  });
+});
+
+const slAnts = document.getElementById('sl-ants');
+slAnts.addEventListener('input', (e)=>{
+  const target = parseInt(e.target.value, 10);
+  CONFIG.antCount = target;
+  document.getElementById('lbl-ants').textContent = target;
+  document.getElementById('mini-ants').textContent = target;
+  resizeAntBuffers(target);
+  audio.countChange(); needsRender = true;
+});
+
+function bindSlider(id, labelId, key, fmt){
+  const el = document.getElementById(id); const lbl = document.getElementById(labelId);
+  el.addEventListener('input', (e)=>{
+    const v = parseFloat(e.target.value);
+    CONFIG[key] = v; lbl.textContent = fmt ? fmt(v) : v; needsRender = true;
+  });
+}
+bindSlider('sl-speed','lbl-speed','antSpeed', v=>v.toFixed(1));
+bindSlider('sl-evap','lbl-evap','evaporation', v=>(v*100).toFixed(1)+'%');
+bindSlider('sl-sensor','lbl-sensor','sensorDist', v=>v+' px');
+bindSlider('sl-wander','lbl-wander','wanderStrength', v=>v.toFixed(2));
+
+/* ---- brush size (1..10, default 1) ---- */
+const slBrush = document.getElementById('sl-brush');
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+const toFaNum = n => String(n).replace(/\d/g, d => FA_DIGITS[d]);
+function brushLabelText(){
+  return currentLang === 'fa' ? (toFaNum(CONFIG.brushSize) + ' / ' + toFaNum(10)) : (CONFIG.brushSize + ' / 10');
+}
+function setBrushSize(v, fromSlider){
+  CONFIG.brushSize = clampBrush(v);
+  if (!fromSlider) slBrush.value = CONFIG.brushSize;
+  document.getElementById('lbl-brush').textContent = brushLabelText();
+  refreshBrushCursorSize();
+}
+slBrush.addEventListener('input', e => setBrushSize(e.target.value, true));
+document.getElementById('brush-dec').addEventListener('click', ()=>{ setBrushSize(CONFIG.brushSize - 1); audio.click(); if (navigator.vibrate) navigator.vibrate(4); });
+document.getElementById('brush-inc').addEventListener('click', ()=>{ setBrushSize(CONFIG.brushSize + 1); audio.click(); if (navigator.vibrate) navigator.vibrate(4); });
+setBrushSize(CONFIG.brushSize);
+
+/* ---- keyboard shortcuts (desktop) ---- */
+const BRUSH_KEYS = { Digit1:'food', Digit2:'wall', Digit3:'erase', Digit4:'hazard' };
+window.addEventListener('keydown', (e)=>{
+  const tag = e.target && e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.code === 'Space'){ e.preventDefault(); document.getElementById('btn-pause').click(); return; }
+  if (BRUSH_KEYS[e.code]){ const b = document.querySelector(`.brush-btn[data-brush="${BRUSH_KEYS[e.code]}"]`); if (b) b.click(); return; }
+  if (e.code === 'BracketLeft' || e.code === 'Minus' || e.code === 'NumpadSubtract'){ setBrushSize(CONFIG.brushSize - 1); return; }
+  if (e.code === 'BracketRight' || e.code === 'Equal' || e.code === 'NumpadAdd'){ setBrushSize(CONFIG.brushSize + 1); return; }
+  if (e.code === 'KeyF'){ toggleFullscreen(); return; }
+  if (e.code === 'KeyM'){ document.getElementById('btn-sound').click(); }
+});
+
+document.getElementById('sl-vol').addEventListener('input', (e)=>{
+  const v = parseFloat(e.target.value); CONFIG.volume = v;
+  document.getElementById('lbl-vol').textContent = (v*100).toFixed(0)+'%';
+  audio.setVolume(v);
+});
+document.getElementById('sl-terrain-bright').addEventListener('input', (e)=>{
+  terrainBrightness = parseInt(e.target.value, 10);
+  document.getElementById('lbl-terrain-bright').textContent = terrainBrightness+'%';
+  generateTerrainCanvas(); needsRender = true;
+});
+
+document.getElementById('sl-scout').addEventListener('input', (e)=>{
+  CONFIG.mixScout = parseInt(e.target.value, 10);
+  document.getElementById('lbl-scout').textContent = CONFIG.mixScout+'%';
+});
+document.getElementById('sl-worker').addEventListener('input', (e)=>{
+  CONFIG.mixWorker = parseInt(e.target.value, 10);
+  document.getElementById('lbl-worker').textContent = CONFIG.mixWorker+'%';
+});
+document.getElementById('sl-carrier').addEventListener('input', (e)=>{
+  CONFIG.mixCarrier = parseInt(e.target.value, 10);
+  document.getElementById('lbl-carrier').textContent = CONFIG.mixCarrier+'%';
+});
+['sl-scout','sl-worker','sl-carrier'].forEach(id => {
+  document.getElementById(id).addEventListener('change', ()=>{
+    for (let i = 0; i < antCount; i++) antType[i] = pickAntTypeIdx();
+    needsRender = true;
+  });
+});
+
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); CONFIG.behavior = btn.dataset.mode;
+    if (btn.dataset.mode === 'explorer'){ CONFIG.wanderStrength = 0.6; CONFIG.turnSpeed = 0.35; document.getElementById('sl-wander').value = 0.6; document.getElementById('lbl-wander').textContent = '0.60'; }
+    else if (btn.dataset.mode === 'exploiter'){ CONFIG.wanderStrength = 0.08; CONFIG.turnSpeed = 0.22; document.getElementById('sl-wander').value = 0.08; document.getElementById('lbl-wander').textContent = '0.08'; }
+    else { CONFIG.wanderStrength = 0.22; CONFIG.turnSpeed = 0.28; document.getElementById('sl-wander').value = 0.22; document.getElementById('lbl-wander').textContent = '0.22'; }
+    audio.click();
+  });
+});
+
+document.querySelectorAll('[data-time]').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-time]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); CONFIG.timeScale = parseFloat(btn.dataset.time); accumulator = 0; audio.click();
+  });
+});
+
+document.querySelectorAll('[data-appear]').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-appear]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); CONFIG.antAppearance = btn.dataset.appear; needsRender = true; audio.click();
+  });
+});
+
+function bindToggle(id, configKey, onApply){
+  const sw = document.getElementById(id);
+  sw.addEventListener('click', ()=>{
+    sw.classList.toggle('on'); CONFIG[configKey] = sw.classList.contains('on');
+    if (onApply) onApply(CONFIG[configKey]);
+    audio.ensure(); audio.click(); needsRender = true;
+  });
+  if (!CONFIG[configKey]) sw.classList.remove('on');
+}
+bindToggle('sw-ambient','ambientOn', (on)=>{ if (!audio.enabled) return; if (on) audio.startAmbient(); else audio.stopAmbient(); });
+bindToggle('sw-events','eventsOn'); bindToggle('sw-milestone','milestoneOn');
+bindToggle('sw-trails','trailsOnly'); bindToggle('sw-particles','particlesOn');
+
+function buildThemeGrid(){
+  const grid = document.getElementById('theme-grid'); grid.innerHTML = '';
+  Object.entries(THEMES).forEach(([key, th])=>{
+    const card = document.createElement('button');
+    card.className = 'theme-card' + (key === currentTheme ? ' active' : '');
+    card.dataset.theme = key;
+    card.innerHTML = `<span class="th-name">${th.name[currentLang] || th.name.fa}</span>
+      <div class="th-dots">
+        <span class="th-dot" style="background:${th.primary}"></span>
+        <span class="th-dot" style="background:${th.secondary}"></span>
+        <span class="th-dot" style="background:${th.accent}"></span>
+        <span class="th-dot" style="background:${th.purple}"></span>
+      </div>`;
+    card.addEventListener('click', ()=>{ applyTheme(key); audio.themeSweep(); showToast(th.name[currentLang] || th.name.fa); if (navigator.vibrate) navigator.vibrate(6); });
+    grid.appendChild(card);
+  });
+}
+
+function buildTerrainGrid(){
+  const grid = document.getElementById('terrain-grid'); grid.innerHTML = '';
+  Object.entries(TERRAINS).forEach(([key, tf])=>{
+    const card = document.createElement('button');
+    card.className = 'terrain-card' + (key === currentTerrain ? ' active' : '');
+    card.dataset.terrain = key;
+    card.innerHTML = `<span>${tf.name[currentLang] || tf.name.fa}</span>
+      <div class="tc-preview"><canvas width="140" height="34"></canvas></div>`;
+    const prev = card.querySelector('canvas'); const pctx = prev.getContext('2d');
+    pctx.fillStyle = tf.base; pctx.fillRect(0,0,140,34);
+    for (let i=0;i<8;i++){
+      const x = Math.random()*140, y = Math.random()*34, r = 6+Math.random()*14;
+      const g = pctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0, (Math.random()<0.5?tf.accent:tf.darker)+'80');
+      g.addColorStop(1, (Math.random()<0.5?tf.accent:tf.darker)+'00');
+      pctx.fillStyle = g; pctx.beginPath(); pctx.arc(x,y,r,0,Math.PI*2); pctx.fill();
+    }
+    card.addEventListener('click', ()=>{ applyTerrain(key); audio.themeSweep(); showToast((currentLang === 'fa' ? 'زمین: ' : 'Terrain: ') + (tf.name[currentLang] || tf.name.fa)); if (navigator.vibrate) navigator.vibrate(6); });
+    grid.appendChild(card);
+  });
+}
+
+document.querySelectorAll('.preset-btn[data-preset]').forEach(btn => {
+  btn.addEventListener('click', ()=>{
+    applyPresetContent(btn.dataset.preset);
+    initAntBuffers(CONFIG.antCount);
+    audio.spawn(); showToast(t('toastPreset'));
+    if (navigator.vibrate) navigator.vibrate([8,20,8]);
+  });
+});
+
+const btnSound = document.getElementById('btn-sound');
+btnSound.addEventListener('click', ()=>{
+  audio.ensure(); const on = !audio.enabled; audio.setEnabled(on);
+  btnSound.textContent = on ? '🔊' : '🔇'; btnSound.classList.toggle('on', on);
+  if (on) showToast(t('toastSoundOn'));
+});
+
+document.getElementById('btn-lang').addEventListener('click', ()=>{
+  setLanguage(currentLang === 'fa' ? 'en' : 'fa');
+  audio.click();
+});
+
+document.getElementById('btn-spawn-food').addEventListener('click', ()=>{ spawnFoodCluster(width*(0.12+Math.random()*0.76), height*(0.12+Math.random()*0.76), 380); audio.spawn(); if (navigator.vibrate) navigator.vibrate(8); });
+document.getElementById('btn-pause').addEventListener('click', function(){
+  CONFIG.paused = !CONFIG.paused;
+  this.textContent = CONFIG.paused ? t('resume') : t('pause');
+  if (CONFIG.paused) needsRender = true;
+  accumulator = 0; lastTime = performance.now(); audio.click();
+});
+document.getElementById('btn-clear-trails').addEventListener('click', ()=>{
+  homePheromone.fill(0); foodPheromone.fill(0); nextHome.fill(0); nextFood.fill(0);
+  chunkMaxH.fill(0); chunkMaxF.fill(0); chunkDirty.fill(1);
+  needsRender = true; audio.click(); showToast(t('toastClearedTrails'));
+  if (navigator.vibrate) navigator.vibrate(8);
+});
+document.getElementById('btn-clear-walls').addEventListener('click', ()=>{
+  walls.fill(0); hazards.fill(0); chunkDirty.fill(1);
+  wallCanvasDirty = true;
+  needsRender = true; audio.click(); showToast(t('toastClearedWalls'));
+  if (navigator.vibrate) navigator.vibrate(8);
+});
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  initSimulation(true); setPanelExpanded(false); audio.spawn(); showToast(t('toastReset'));
+  if (navigator.vibrate) navigator.vibrate([10,30,10]);
+});
+document.getElementById('btn-save').addEventListener('click', ()=>{
+  try {
+    const save = { theme: currentTheme, terrain: currentTerrain, config: CONFIG, lang: currentLang };
+    localStorage.setItem('antSim_v1', JSON.stringify(save));
+    audio.spawn(); showToast(t('toastSaved'));
+    if (navigator.vibrate) navigator.vibrate([10,30,10]);
+  } catch(e){ showToast('Error saving'); }
+});
+
+function loadSavedConfig(){
+  try {
+    const raw = localStorage.getItem('antSim_v1');
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.config){
+      const keys = ['antCount','antSpeed','evaporation','sensorDist','wanderStrength','brushSize','mixScout','mixWorker','mixCarrier','volume','ambientOn','eventsOn','milestoneOn','timeScale','antAppearance','behavior'];
+      for (const k of keys) if (k in d.config) CONFIG[k] = d.config[k];
+      if (CONFIG.antCount > 2500) CONFIG.antCount = 2500;
+    }
+    if (d.theme && THEMES[d.theme]) currentTheme = d.theme;
+    if (d.terrain && TERRAINS[d.terrain]) currentTerrain = d.terrain;
+    if (d.lang && (d.lang === 'fa' || d.lang === 'en')) currentLang = d.lang;
+    
+    document.getElementById('sl-ants').value = CONFIG.antCount;
+    document.getElementById('lbl-ants').textContent = CONFIG.antCount;
+    document.getElementById('mini-ants').textContent = CONFIG.antCount;
+    document.getElementById('sl-speed').value = CONFIG.antSpeed;
+    document.getElementById('lbl-speed').textContent = CONFIG.antSpeed.toFixed(1);
+    document.getElementById('sl-evap').value = CONFIG.evaporation;
+    document.getElementById('lbl-evap').textContent = (CONFIG.evaporation*100).toFixed(1)+'%';
+    document.getElementById('sl-sensor').value = CONFIG.sensorDist;
+    document.getElementById('lbl-sensor').textContent = CONFIG.sensorDist+' px';
+    document.getElementById('sl-wander').value = CONFIG.wanderStrength;
+    document.getElementById('lbl-wander').textContent = CONFIG.wanderStrength.toFixed(2);
+    setBrushSize(CONFIG.brushSize); // clamps any legacy saved value into 1..10
+    document.getElementById('sl-vol').value = CONFIG.volume*100;
+    document.getElementById('lbl-vol').textContent = (CONFIG.volume*100).toFixed(0)+'%';
+  } catch(e){}
+}
+
+let resizeTO;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTO);
+  resizeTO = setTimeout(()=>{
+    const m = 40;
+    for (const f of foodSources){ f.x = Math.max(m, Math.min(width-m, f.x)); f.y = Math.max(m, Math.min(height-m, f.y)); }
+    initSimulation(false);
+  }, 180);
+});
+window.addEventListener('orientationchange', ()=>{ setTimeout(()=>initSimulation(false), 250); });
+document.addEventListener('visibilitychange', ()=>{ lastTime = performance.now(); accumulator = 0; if (!document.hidden) needsRender = true; });
+document.addEventListener('gesturestart', e=>e.preventDefault(), {passive:false});
+window.addEventListener('contextmenu', e=>e.preventDefault());
+
+let lastFoodCheck = performance.now(), lastFoodCount = 0, foodRate = 0;
+setInterval(()=>{
+  const now = performance.now(); const dt = (now - lastFoodCheck)/1000;
+  if (dt > 0.5){
+    const rate = (colony.foodCollected - lastFoodCount)/dt;
+    foodRate = foodRate*0.8 + rate*0.2; lastFoodCheck = now; lastFoodCount = colony.foodCollected;
+    if (audio.ambient) audio.updateAmbient(Math.min(1, foodRate/15));
+  }
+}, 500);
+
+/* ============ BOOT ============ */
+// Fix: Initialize simulation FIRST to avoid undefined chunkDirty in applyTheme
+initSimulation(true);
+setLanguage(currentLang); // Applies RTL/LTR + translations + builds grids
+loadSavedConfig(); // Loads theme & terrain
+applyTheme(currentTheme);
+applyTerrain(currentTerrain);
+
+// Set default desktop state (open)
+if (window.innerWidth >= 768) {
+  document.getElementById('panel-full').style.display = 'block';
+}
+
+requestAnimationFrame(loop);
+
+document.addEventListener('pointerdown', ()=>{ if (audio.enabled) audio.ensure(); }, {once:false});
+
+})();
+</script>
+</body>
+</html>
