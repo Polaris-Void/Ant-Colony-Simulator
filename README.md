@@ -143,8 +143,7 @@ Issues and pull requests are welcome. Please keep the project **single-file and 
 
 ## 📜 License
 
-This project is licensed under the **Apache License, Version 2.0**. *(Assumption: same license as your other repositories — adjust if different.)*
-
+This project is licensed under the **Apache License, Version 2.0**.
 ---
 
 ## ⚖️ Absolute Legal Disclaimer, Waiver & Limitation of Liability
